@@ -1,0 +1,9 @@
+{
+  "name": "hack4health",
+  "private": true,
+  "workspaces": [
+    "admin",
+    "sdk/ui",
+    "modules/*/ui"
+  ]
+}
