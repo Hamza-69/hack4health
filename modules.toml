@@ -1,0 +1,10 @@
+# Module registry. One table per module; `uv run h4h module new <name>` adds one.
+#   url     the module's backend: MCP server at <url>/mcp, admin API at <url>/api
+#   ui_url  the admin UI the panel embeds (optional; defaults to <url>/ui/, the built UI)
+#   title   name shown in the admin panel (optional)
+# Removing a module from here revokes its token.
+
+[noop]
+title = "Noop"
+url = "http://localhost:8001"
+ui_url = "http://localhost:5174"

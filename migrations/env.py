@@ -6,8 +6,8 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
+import core.models  # noqa: F401  (registers the tables on Base.metadata)
 from core.db import DATABASE_URL, Base
-from core.registry import load_models
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -19,8 +19,7 @@ config.set_main_option("sqlalchemy.url", DATABASE_URL.replace("%", "%%"))
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Core tables plus every module listed in core/registry.py.
-load_models()
+# Core tables only. Modules keep their tables in their own schema and migrate them themselves.
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,

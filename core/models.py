@@ -2,8 +2,8 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, Text, func, text
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import DateTime, Enum, ForeignKey, Index, String, Text, func, text
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -73,3 +73,30 @@ class Archive(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+
+
+class AdminRole(enum.StrEnum):
+    OPERATOR = "operator"  # our team: every module
+    SUPPLIER = "supplier"  # only the modules listed on the admin
+
+
+class Admin(Base):
+    """An admin panel login."""
+
+    __tablename__ = "admins"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    email: Mapped[str] = mapped_column(unique=True)
+    password_hash: Mapped[str]
+    role: Mapped[AdminRole] = mapped_column(
+        Enum(AdminRole, name="admin_role", values_callable=lambda e: [m.value for m in e])
+    )
+    modules: Mapped[list[str]] = mapped_column(
+        ARRAY(String), default=list, server_default=text("'{}'")
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    def can_open(self, module: str) -> bool:
+        return self.role == AdminRole.OPERATOR or module in self.modules

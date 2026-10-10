@@ -1,0 +1,19 @@
+[project]
+name = "h4h"
+version = "0.1.0"
+description = "SDK for hack4health modules: MCP tools, admin API, own DB schema, core client"
+requires-python = ">=3.13"
+dependencies = [
+    "asyncpg>=0.32.0",
+    "fastapi>=0.143.0",
+    "httpx>=0.28.1",
+    "mcp>=2.3.0",
+    "pyjwt[crypto]>=2.15.1",
+    "python-dotenv>=1.1.0",
+    "sqlalchemy[asyncio]>=2.1.4",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

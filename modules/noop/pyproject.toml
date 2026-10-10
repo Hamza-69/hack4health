@@ -1,0 +1,8 @@
+[project]
+name = "noop"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = ["h4h"]
+
+[tool.uv.sources]
+h4h = { path = "../../sdk/python", editable = true }

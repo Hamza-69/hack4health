@@ -1,12 +1,23 @@
 import os
+import tempfile
+from pathlib import Path
 
 import pytest
+
+# Throwaway signing keys and a one-module registry, set before the core reads them.
+_tmp = Path(tempfile.mkdtemp())
+os.environ["KEYS_DIR"] = str(_tmp / "keys")
+os.environ["MODULES_CONFIG"] = str(_tmp / "modules.toml")
+(_tmp / "modules.toml").write_text('[testmod]\nurl = "http://localhost:9999"\n')
 from sqlalchemy import make_url, text
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
+import core.models  # noqa: F401
+from core import tokens
 from core.db import Base
-from core.registry import load_models
+
+tokens.generate_keys()
 
 TEST_DATABASE_URL = os.environ.get(
     "TEST_DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/hack4health_test"
@@ -35,7 +46,6 @@ async def session():
     except (OSError, DBAPIError) as e:
         pytest.skip(f"no Postgres at {TEST_DATABASE_URL} ({e})")
 
-    load_models()
     engine = create_async_engine(TEST_DATABASE_URL)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
