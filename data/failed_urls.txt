@@ -1,0 +1,10 @@
+https://www.moph.gov.lb/ar/	http_403	2026-10-10T16:23:34
+https://www.moph.gov.lb/en/	http_403	2026-10-10T16:23:50
+https://www.moph.gov.lb/userfiles/files/Programs%26Projects/Barcode%20Program/list388-web-5-10-2026.xlsx	ProxyError	2026-10-10T13:49:29
+https://www.moph.gov.lb/userfiles/files/HealthCareSystem/Pharmaceuticals/DrugsPublicPriceList/5-10-2026/WebMarketed20261005.xls	ProxyError	2026-10-10T13:49:47
+https://www.moph.gov.lb/userfiles/files/HealthCareSystem/Pharmaceuticals/DrugsPublicPriceList/5-10-2026/WebNonMarketed20261005.xls	ProxyError	2026-10-10T13:50:06
+https://www.moph.gov.lb/userfiles/files/HealthCareSystem/Pharmaceuticals/DrugsPublicPriceList/3-9-2026/WebMarketed20260903.xls	ProxyError	2026-10-10T13:50:24
+https://www.moph.gov.lb/userfiles/files/HealthCareSystem/Pharmaceuticals/DrugsPublicPriceList/3-9-2026/WebNonMarketed20260903.xls	ProxyError	2026-10-10T13:50:43
+https://www.moph.gov.lb/userfiles/files/HealthCareSystem/Pharmaceuticals/DrugsPublicPriceList/11-8-2026/WebNonMarketed20260811-19-8-2026.xls	ProxyError	2026-10-10T13:51:00
+https://www.moph.gov.lb/userfiles/files/HealthCareSystem/Pharmaceuticals/DrugsPublicPriceList/11-8-2026/WebMarketed20260811-19-8-2026.xls	ProxyError	2026-10-10T13:51:17
+https://www.moph.gov.lb/userfiles/files/HealthCareSystem/Pharmaceuticals/DrugsPublicPriceList/11-8-2026/WebMarketed20260811-12-8-2026.xls	ProxyError	2026-10-10T13:51:35
