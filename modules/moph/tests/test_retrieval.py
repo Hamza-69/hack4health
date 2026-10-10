@@ -1,10 +1,17 @@
 """Retrieval checks on the real crawl data: questions the way the agent would phrase its searches,
-and what must come back. Skipped when data/ is missing. Add a case whenever a search goes wrong."""
+and what must come back. Skipped when data/ is missing. Add a case whenever a search goes wrong.
+
+The keyword cases run without anything else. The semantic cases (English, Arabizi, dialect) need
+OPENAI_API_KEY and the module's database, which caches the embeddings so reruns cost nothing.
+"""
+
+import asyncio
 
 import pytest
 
-from app.catalog import Catalog
-from app.ingest import data_dir, load_files
+from app import embeddings
+from app.catalog import Catalog, attach_vectors
+from app.ingest import data_dir, ensure_schema, load_files
 
 pytestmark = pytest.mark.skipif(
     not (data_dir() / "structured" / "services_clean.json").exists(), reason="no crawl data"
@@ -93,3 +100,67 @@ def test_unknown_area_says_so(catalog):
 def test_page_search_returns_sources(catalog):
     results = catalog.search_pages("vaccination calendar children التلقيح")
     assert results and all(r["url"].startswith("https://www.moph.gov.lb") for r in results)
+
+
+# Semantic search: any language, any phrasing.
+
+
+@pytest.fixture(scope="module")
+def semantic():
+    if not embeddings.enabled():
+        pytest.skip("OPENAI_API_KEY not set")
+    catalog = Catalog(load_files())
+
+    async def setup():
+        await ensure_schema()
+        await attach_vectors(catalog)
+
+    try:
+        asyncio.run(setup())
+    except OSError as e:
+        pytest.skip(f"module database unreachable: {e}")
+    return catalog
+
+
+def search(catalog: Catalog, kind: str, query: str) -> list[dict]:
+    vector = asyncio.run(embeddings.embed_query(query))
+    return getattr(catalog, f"search_{kind}")(query, vector)
+
+
+SEMANTIC_SERVICES = [
+    ("how do I get my cancer medication from the ministry", {6, 180}),
+    ("kif bjib dawa el sarataan men el wizara", {6, 180}),
+    ("nursing license", {164, 250, 225, 251}),
+    ("my father needs dialysis, how does he register", {87}),
+    ("rabies shots after a dog bite", {138, 139}),
+    ("I want to open a pharmacy", {38}),
+    ("bring medicine from abroad for personal use", {62}),
+    ("kidney transplant", {195}),
+    ("بدي افتح صيدلية", {38}),
+]
+
+
+@pytest.mark.parametrize(("query", "expected"), SEMANTIC_SERVICES)
+def test_semantic_service_search(semantic, query, expected):
+    found = [s["service_id"] for s in search(semantic, "services", query)]
+    assert expected & set(found), f"{query!r} returned {found}"
+
+
+SEMANTIC_FACTS = [
+    ("how much does the ministry pay for one dialysis session", "dialysis"),
+    ("the hospital is asking me to pay money even though I'm uninsured", "no_extra_charges"),
+    ("free mammogram", "mammography"),
+    ("شو رقم خط الدعم النفسي", "hotline"),
+    ("l mustashfa 3am yetlob menne masari", "no_extra_charges"),
+]
+
+
+@pytest.mark.parametrize(("query", "topic"), SEMANTIC_FACTS)
+def test_semantic_fact_search(semantic, query, topic):
+    found = [f["topic"] for f in search(semantic, "facts", query)[:3]]
+    assert topic in found, f"{query!r} returned {found}"
+
+
+def test_unrelated_question_is_a_weak_match(semantic):
+    results = search(semantic, "services", "best pizza place in Beirut")
+    assert all(r["match"] == "weak" for r in results)
