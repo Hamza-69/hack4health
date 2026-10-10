@@ -1,9 +1,8 @@
-"""Search over everything the module knows. Pure Python over plain rows, so it is testable without a
-database: tools build it from the tables (get_catalog), tests from the files (app.ingest.load_files).
+"""Search over everything the module knows. Built from plain rows, so it needs no database: tools
+build it from the tables (get_catalog), tests from the files (app.ingest.load_files).
 
-Services, site pages and facts are searched by meaning (embeddings) fused with keywords, see
-app.hybrid; search methods take the query's vector from app.embeddings.embed_query. Drugs and
-facilities are matched by name and filters instead.
+Services, site pages, news and documents are searched by meaning in Pinecone (app.search_index);
+the catalog turns the matches into results. Drugs and facilities are matched by name and filters.
 
 Every result carries its official source URL, and dates where the source has them, so the agent
 can cite and date what it says.
@@ -11,14 +10,13 @@ can cite and date what it says.
 
 import asyncio
 from collections import defaultdict
+from datetime import date, timedelta
 from typing import Literal
 
-import numpy as np
 from rapidfuzz import fuzz, process
 from sqlalchemy import select
 
-from app import embeddings
-from app.hybrid import HybridIndex
+from app import search_index
 from app.text import is_arabic, normalize
 
 FacilityType = Literal[
@@ -50,6 +48,23 @@ FREE_LISTS = {
     "allocation_free": "Allocation list of medicines MoPH provides (2024)",
 }
 
+HOTLINES = [
+    {"contact": "1214: Ministry of Public Health hotline, also for cancer and intractable-disease medicines",
+     "source_url": "https://www.moph.gov.lb/ar/Media/view/82895"},
+    {"contact": "1787: questions and complaints about hospital care, e.g. a hospital asking for extra payment (working hours)",
+     "source_url": "https://www.moph.gov.lb/ar/Media/view/85973"},
+    {"contact": "1564: mental health support line", "source_url": "https://www.moph.gov.lb/ar/Media/view/82829"},
+]
+
+STRONG_SIMILARITY = 0.45  # cosine similarity of a "strong" match with text-embedding-3-large
+RECENT_DAYS = 548  # site results from the last 18 months rank a little higher: rules change
+RECENT_BOOST = 1.1
+
+
+def _strength(score: float) -> str:
+    return "strong" if score >= STRONG_SIMILARITY else "weak"
+
+
 def _lines(value) -> list[str]:
     if not value:
         return []
@@ -65,24 +80,10 @@ def _price(value: float | None) -> str | None:
 class Catalog:
     def __init__(self, rows: dict):
         self.data_date: str = rows.get("data_date") or ""
-        self.services = sorted(rows["services"], key=lambda s: s["id"])
-        self.pages = rows["pages"]
+        self.services = {s["id"]: s for s in rows["services"]}
         self.drugs = rows["drugs"]
         self.free_meds = rows["free_meds"]
         self.facilities = rows["facilities"]
-        self.facts = [f for f in rows["facts"] if f.get("active", True)]
-
-        services = [self._service_doc(s["data"]) for s in self.services]
-        title = [s["title"] for s in self.services]
-        self.services_index = HybridIndex([f"{t}\n{t}\n{d}" for t, d in zip(title, services)], services)
-        self.pages_index = HybridIndex(
-            [f"{p['title']}\n{p['title']}\n{p['text']}" for p in self.pages],
-            [f"{p['title']}\n{p['text']}" for p in self.pages],
-        )
-        facts = [
-            f"{f['topic'].replace('_', ' ')}\n{f['rule']}\n{f['who_is_eligible']}\n{f['where']}" for f in self.facts
-        ]
-        self.facts_index = HybridIndex(facts, facts)
 
         self._brands = [normalize(d["brand_name"]) for d in self.drugs]
         self._ingredients = [normalize(d["ingredients"]) for d in self.drugs]
@@ -98,7 +99,8 @@ class Catalog:
     # Services
 
     @staticmethod
-    def _service_doc(s: dict) -> str:
+    def service_text(s: dict) -> str:
+        """What gets embedded for a service."""
         parts = [s.get("title_ar"), s.get("department_ar"), s.get("department_en"), s.get("listing_section"),
                  s.get("listing_unit"), s.get("responsible_unit"), s.get("eligibility"),
                  *_lines(s.get("documents")), *_lines(s.get("form_labels")), *_lines(s.get("steps"))]
@@ -135,76 +137,55 @@ class Catalog:
         card["office"] = {k: v for k, v in card["office"].items() if v}
         return {k: v for k, v in card.items() if v not in (None, "", [], {})}
 
-    def search_services(self, query: str, vector: np.ndarray | None = None, limit: int = 3) -> list[dict]:
+    async def search_services(self, query: str, limit: int = 5) -> list[dict]:
+        matches = await search_index.query(search_index.SERVICES, query, limit)
         return [
-            {"match": hit.match, **self.service_card(self.services[hit.index]["data"])}
-            for hit in self.services_index.search(query, vector, limit)
+            {"match": _strength(m.score), **self.service_card(self.services[int(m.metadata["service_id"])]["data"])}
+            for m in matches
+            if int(m.metadata.get("service_id", -1)) in self.services
         ]
 
     def get_service(self, service_id: int) -> dict | None:
-        for s in self.services:
-            if s["id"] == service_id:
-                return self.service_card(s["data"])
-        return None
+        s = self.services.get(service_id)
+        return self.service_card(s["data"]) if s else None
 
-    # Site pages and news
+    # Site pages, news and documents
 
-    def search_pages(self, query: str, vector: np.ndarray | None = None, limit: int = 5) -> list[dict]:
-        hits = self.pages_index.search(query, vector, limit * 6)
-        # Prefer recent items a little: rules and announcements change.
+    @staticmethod
+    async def search_site(query: str, limit: int = 5) -> list[dict]:
+        matches = await search_index.query(search_index.SITE, query, limit * 6)
+        recent = (date.today() - timedelta(days=RECENT_DAYS)).isoformat()
         ranked = sorted(
-            hits,
-            key=lambda h: h.score * (1.25 if (self.pages[h.index]["date"] or "") >= "2025" else 1),
+            matches,
+            key=lambda m: m.score * (RECENT_BOOST if m.metadata.get("date", "") >= recent else 1),
             reverse=True,
         )
-        out, per_url = [], defaultdict(int)
-        for hit in ranked:
-            p = self.pages[hit.index]
-            if per_url[p["url"]] >= 2:
+        out, seen = [], set()
+        for m in ranked:
+            meta = m.metadata
+            # One result per source: its best chunk. A dated announcement appears under several URLs.
+            key = (meta.get("title"), meta["date"]) if meta.get("date") else meta["url"]
+            if key in seen:
                 continue
-            per_url[p["url"]] += 1
-            out.append(
-                {
-                    "match": hit.match,
-                    "title": p["title"],
-                    "date": p["date"],
-                    "kind": p["section"],
-                    "text": p["text"],
-                    "url": p["url"],
-                }
-            )
+            seen.add(key)
+            result = {
+                "match": _strength(m.score),
+                "kind": meta["kind"],
+                "title": meta.get("title"),
+                "date": meta.get("date"),
+                "text": meta["text"],
+                "url": meta["url"],
+                "found_on": meta.get("found_on"),
+                "found_on_title": meta.get("found_on_title"),
+            }
+            out.append({k: v for k, v in result.items() if v})
             if len(out) == limit:
                 break
         return out
 
-    # Curated facts
-
     @staticmethod
-    def fact_card(f: dict) -> dict:
-        card = {
-            "topic": f["topic"],
-            "rule": f["rule"],
-            "who_is_eligible": f["who_is_eligible"],
-            "where": f["where"],
-            "effective": f["effective_date"],
-            "confidence": f["confidence"],
-            "editor_note": f["note"],
-            "source_url": f["source_url"],
-            "source_date": f["source_date"],
-        }
-        return {k: v for k, v in card.items() if v}
-
-    def search_facts(self, query: str | None, vector: np.ndarray | None = None, limit: int = 8) -> list[dict]:
-        if not query or not query.strip():
-            return [self.fact_card(f) for f in self.facts]
-        return [
-            {"match": h.match, **self.fact_card(self.facts[h.index])}
-            for h in self.facts_index.search(query, vector, limit)
-        ]
-
-    def contacts(self) -> list[dict]:
-        hotlines = [{"contact": f["rule"], "source_url": f["source_url"]} for f in self.facts if f["topic"] == "hotline"]
-        return hotlines or [{"contact": "1214: Ministry of Public Health hotline"}]
+    def contacts() -> list[dict]:
+        return HOTLINES
 
     # Drugs
 
@@ -332,13 +313,13 @@ def invalidate() -> None:
 async def get_catalog() -> Catalog:
     global _catalog
     async with _lock:
-        if _catalog is None:
+        if _catalog is None or not _catalog.services:  # not loaded yet: check again next time
             _catalog = await _load()
         return _catalog
 
 
 async def _load() -> Catalog:
-    from app.models import Drug, Facility, Fact, FreeMed, IngestRun, Page, Service
+    from app.models import Drug, Facility, FreeMed, IngestRun, Service
     from app.module import module
 
     def as_dicts(objs) -> list[dict]:
@@ -347,17 +328,9 @@ async def _load() -> Catalog:
     async with module.db() as session:
         rows = {
             name: as_dicts(await session.scalars(select(model)))
-            for name, model in [("services", Service), ("pages", Page), ("drugs", Drug),
-                                ("free_meds", FreeMed), ("facilities", Facility), ("facts", Fact)]
+            for name, model in [("services", Service), ("drugs", Drug), ("free_meds", FreeMed),
+                                ("facilities", Facility)]
         }
         last = await session.scalar(select(IngestRun).order_by(IngestRun.id.desc()).limit(1))
     rows["data_date"] = last.data_date if last else ""
-    catalog = await asyncio.to_thread(Catalog, rows)
-    await attach_vectors(catalog)
-    return catalog
-
-
-async def attach_vectors(catalog: Catalog) -> None:
-    """Give the catalog's indexes their embeddings (cached, or fetched once). No-op without a key."""
-    for index in (catalog.services_index, catalog.pages_index, catalog.facts_index):
-        index.vectors = await embeddings.embed_documents(index.semantic_texts)
+    return await asyncio.to_thread(Catalog, rows)

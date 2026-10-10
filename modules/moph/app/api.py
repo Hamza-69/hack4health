@@ -9,9 +9,9 @@ from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import catalog
+from app import catalog, search_index
 from app.ingest import data_dir, ingest
-from app.models import Drug, Facility, Fact, FreeMed, Gap, IngestRun, Page, SearchLog, Service
+from app.models import Document, Drug, Facility, FreeMed, Gap, IngestRun, Page, SearchLog, Service
 from app.module import module
 
 Session = Annotated[AsyncSession, Depends(module.session)]
@@ -28,15 +28,20 @@ async def overview(session: Session) -> dict:
 
     week_ago = datetime.now(timezone.utc) - timedelta(days=7)
     last = await session.scalar(select(IngestRun).order_by(IngestRun.id.desc()).limit(1))
+    data = {
+        "services": await count(Service),
+        "page_chunks": await count(Page),
+        "document_chunks": await count(Document),
+        "drugs": await count(Drug),
+        "free_list_medicines": await count(FreeMed),
+        "facilities": await count(Facility),
+    }
+    try:
+        data |= {f"indexed_{name}": n for name, n in (await search_index.counts()).items()}
+    except search_index.SearchUnavailable:
+        pass  # the overview still shows the tables
     return {
-        "data": {
-            "services": await count(Service),
-            "page_chunks": await count(Page),
-            "drugs": await count(Drug),
-            "free_list_medicines": await count(FreeMed),
-            "facilities": await count(Facility),
-            "active_facts": await count(Fact, Fact.active),
-        },
+        "data": data,
         "last_load": last and {"at": last.started_at, "data_date": last.data_date, "by": last.by},
         "data_dir": str(data_dir()),
         "open_gaps": await count(Gap, Gap.status == "open"),
@@ -47,76 +52,15 @@ async def overview(session: Session) -> dict:
 
 @module.api.post("/reload")
 async def reload(admin: CurrentAdmin) -> dict:
-    """Reload the crawled data from the files in data/. Facts and logs are kept."""
+    """Reload the crawled data from the files in sandpit/data/. Logs are kept."""
     try:
         counts = await ingest(by=admin.email)
     except FileNotFoundError as e:
         raise HTTPException(400, f"crawl file missing: {e.filename}") from e
+    except search_index.SearchUnavailable as e:
+        raise HTTPException(503, str(e)) from e
     catalog.invalidate()
-    await catalog.get_catalog()  # embeds new texts now rather than on the next question
     return counts
-
-
-# Facts
-
-
-class FactIn(BaseModel):
-    topic: str
-    rule: str
-    who_is_eligible: str = ""
-    where: str = ""
-    effective_date: str = ""
-    source_url: str = ""
-    source_date: str = ""
-    confidence: Literal["high", "medium", "low"] = "high"
-    note: str = ""
-    active: bool = True
-
-
-class FactOut(FactIn):
-    id: int
-    updated_by: str
-    updated_at: datetime
-
-
-@module.api.get("/facts")
-async def list_facts(session: Session) -> list[FactOut]:
-    facts = await session.scalars(select(Fact).order_by(Fact.topic, Fact.id))
-    return [FactOut.model_validate(f, from_attributes=True) for f in facts]
-
-
-@module.api.post("/facts")
-async def create_fact(body: FactIn, admin: CurrentAdmin, session: Session) -> FactOut:
-    fact = Fact(**body.model_dump(), updated_by=admin.email)
-    session.add(fact)
-    await session.commit()
-    await session.refresh(fact)
-    catalog.invalidate()
-    return FactOut.model_validate(fact, from_attributes=True)
-
-
-@module.api.put("/facts/{fact_id}")
-async def update_fact(fact_id: int, body: FactIn, admin: CurrentAdmin, session: Session) -> FactOut:
-    fact = await session.get(Fact, fact_id)
-    if fact is None:
-        raise HTTPException(404, "no such fact")
-    for key, value in body.model_dump().items():
-        setattr(fact, key, value)
-    fact.updated_by = admin.email
-    await session.commit()
-    await session.refresh(fact)
-    catalog.invalidate()
-    return FactOut.model_validate(fact, from_attributes=True)
-
-
-@module.api.delete("/facts/{fact_id}")
-async def delete_fact(fact_id: int, session: Session) -> None:
-    fact = await session.get(Fact, fact_id)
-    if fact is None:
-        raise HTTPException(404, "no such fact")
-    await session.delete(fact)
-    await session.commit()
-    catalog.invalidate()
 
 
 # Unanswered questions

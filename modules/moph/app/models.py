@@ -1,14 +1,14 @@
 """This module's own tables. They live in its Postgres schema, never in the core's.
 
 Two kinds:
-- Crawled data (services, pages, drugs, free_meds, facilities): replaced as a whole by app.ingest.
-- Admin data (facts, gaps, search_log, ingest_runs) and the embeddings cache: kept across ingests.
-  Facts are the curated, dated rules the agent treats as the most authoritative source.
+- Crawled data (services, pages, documents, drugs, free_meds, facilities): replaced as a whole by
+  app.ingest, which also syncs the search index in Pinecone (app.search_index).
+- Admin data (gaps, search_log, ingest_runs): kept across ingests.
 """
 
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, DateTime, Float, Integer, LargeBinary, String, Text, func
+from sqlalchemy import JSON, Boolean, DateTime, Float, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.module import module
@@ -40,6 +40,21 @@ class Page(module.Base):
     lang: Mapped[str] = mapped_column(String(2))
     date: Mapped[str | None] = mapped_column(String(10))  # YYYY-MM-DD when the site shows one
     chunk: Mapped[int] = mapped_column(Integer)  # position of this chunk in the page
+    text: Mapped[str] = mapped_column(Text)
+
+
+class Document(module.Base):
+    """A chunk of the text of a file linked from the site: a law, decision, circular, guide or report."""
+
+    __tablename__ = "documents"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    url: Mapped[str] = mapped_column(Text)  # the file
+    title: Mapped[str] = mapped_column(Text)  # from the file name
+    source_url: Mapped[str] = mapped_column(Text)  # the page that links to it
+    source_title: Mapped[str] = mapped_column(Text)
+    date: Mapped[str | None] = mapped_column(String(10))  # the linking page's date, else the year in the name
+    chunk: Mapped[int] = mapped_column(Integer)
     text: Mapped[str] = mapped_column(Text)
 
 
@@ -93,28 +108,6 @@ class Facility(module.Base):
     url: Mapped[str] = mapped_column(Text)
 
 
-class Fact(module.Base):
-    """A curated rule or contact, edited from the admin page. Wins over crawled pages."""
-
-    __tablename__ = "facts"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    topic: Mapped[str] = mapped_column(String(60))
-    rule: Mapped[str] = mapped_column(Text)
-    who_is_eligible: Mapped[str] = mapped_column(Text, default="")
-    where: Mapped[str] = mapped_column(Text, default="")
-    effective_date: Mapped[str] = mapped_column(Text, default="")
-    source_url: Mapped[str] = mapped_column(Text, default="")
-    source_date: Mapped[str] = mapped_column(String(10), default="")
-    confidence: Mapped[str] = mapped_column(String(10), default="high")  # high | medium | low
-    note: Mapped[str] = mapped_column(Text, default="")  # for editors, e.g. what it supersedes
-    active: Mapped[bool] = mapped_column(Boolean, default=True)
-    updated_by: Mapped[str] = mapped_column(Text, default="import")
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
-
-
 class Gap(module.Base):
     """A question the agent could not answer from our data. Anonymous: no user id."""
 
@@ -138,15 +131,6 @@ class SearchLog(module.Base):
     query: Mapped[str] = mapped_column(Text)
     results: Mapped[int] = mapped_column(Integer)
     created_at: Mapped[datetime] = _created()
-
-
-class Embedding(module.Base):
-    """Cached embedding vector of one text. Kept across ingests; see app.embeddings."""
-
-    __tablename__ = "embeddings"
-
-    key: Mapped[str] = mapped_column(String(40), primary_key=True)  # sha1 of model, dims and text
-    vector: Mapped[bytes] = mapped_column(LargeBinary)  # float32, unit length
 
 
 class IngestRun(module.Base):

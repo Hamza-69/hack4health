@@ -6,5 +6,6 @@ keys/
 node_modules/
 dist/
 *.tsbuildinfo
-data/state/
-data/raw/files/
+sandpit/data/state/
+sandpit/data/raw/files/
+sandpit/data/text/

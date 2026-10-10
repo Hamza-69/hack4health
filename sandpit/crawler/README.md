@@ -1,9 +1,9 @@
 # Wasel crawler: all public data on moph.gov.lb (Arabic + English)
 
-## Run it (from the repo root, in your own Terminal)
+## Run it (from `sandpit/`, in your own Terminal)
 
 ```bash
-cd ~/Developer/hack4health
+cd sandpit
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r crawler/requirements.txt
 
@@ -19,7 +19,9 @@ Watch progress from a second Terminal tab with `tail -f data/state/progress.log`
 The crawl is **resumable**. Every fetched URL is cached in `data/state/cache/` and listed in `data/state/visited.txt`, so after a crash or Ctrl-C you run the same command again and it continues where it stopped. To refresh, delete the cache entry or the whole `data/state/cache/`. The first news listing page is always refetched.
 
 You can also run single steps:
-`python -m crawler.run services | facilities | drugs | free_meds | pages | page_attachments | news_recent | news_old | attachments | facility_details | drug_details | retry_failed | extract | hotlines | rules_candidates | report`
+`python -m crawler.run services | facilities | drugs | free_meds | pages | page_attachments | news_recent | news_old | attachments | facility_details | drug_details | retry_failed | extract | ocr | hotlines | rules_candidates | report`
+
+`ocr` transcribes scanned PDFs with an OpenAI vision model and needs `OPENAI_API_KEY` in the environment (`WASEL_OCR_MODEL`, default `gpt-6-luna`).
 
 Environment knobs: `WASEL_CONCURRENCY` (default 3), `WASEL_DELAY` (default 0.5 s per request), `WASEL_MAX_FILE_MB` (default 150), `WASEL_UA`.
 

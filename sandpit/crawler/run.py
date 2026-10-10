@@ -7,8 +7,10 @@
     python -m crawler.run services drugs report   # any list of single steps
 
 Single steps: services facilities drugs free_meds pages page_attachments news_recent news_old
-              news facility_details drug_details attachments extract retry_failed hotlines
+              news facility_details drug_details attachments extract ocr retry_failed hotlines
               rules_candidates report
+
+ocr needs OPENAI_API_KEY in the environment.
 
 Everything is resumable: re-running skips URLs already fetched (data/state/cache) and records already written.
 """
@@ -29,10 +31,10 @@ from . import post
 from . import clean
 
 # "fast": what we need today in ~20-30 min - 2025-26 news, a capped site crawl, the useful attachments
-FAST = ["news_2025", "pages_fast", "attachments_fast", "retry_failed", "extract", "hotlines", "rules_candidates", "clean", "report"]
+FAST = ["news_2025", "pages_fast", "attachments_fast", "retry_failed", "extract", "ocr", "hotlines", "rules_candidates", "clean", "report"]
 PRIORITY = ["services", "facilities", "drugs", "free_meds", "hotlines", "clean", "report"]
 FULL = ["pages", "page_attachments", "news_recent", "news_old", "attachments", "facility_details", "drug_details",
-        "free_meds", "retry_failed", "extract", "hotlines", "rules_candidates", "clean", "report"]
+        "free_meds", "retry_failed", "extract", "ocr", "hotlines", "rules_candidates", "clean", "report"]
 
 NET_STEPS = {
     "services": S1.step_services,
@@ -55,6 +57,7 @@ NET_STEPS = {
 }
 LOCAL_STEPS = {
     "extract": F.step_extract,
+    "ocr": F.step_ocr,
     "hotlines": post.step_hotlines,
     "rules_candidates": post.step_rules_candidates,
     "report": post.step_report,

@@ -10,14 +10,14 @@ from h4h import ToolError
 from mcp.server.mcpserver import Context
 from pydantic import Field
 
-from app.catalog import FacilityType, get_catalog
-from app.embeddings import embed_query
+from app.catalog import Catalog, FacilityType, get_catalog
 from app.models import Gap, SearchLog
 from app.module import module
+from app.search_index import SearchUnavailable
 
 Query = Annotated[
     str,
-    Field(description="The user's question or its key terms, in Arabic or English, e.g. 'how to get cancer medicine from the ministry'"),
+    Field(description="The user's question or its key terms, in Arabic: the ministry's content is Arabic, so translate English or Arabizi first, e.g. 'كيف أحصل على أدوية السرطان من الوزارة'"),
 ]
 
 
@@ -29,15 +29,31 @@ async def _catalog(ctx: Context):
     return catalog
 
 
+async def _search(results):
+    """Await a search; a search outage reaches the agent as a tool error it can explain."""
+    try:
+        return await results
+    except SearchUnavailable as e:
+        raise ToolError(f"{e}. Meanwhile point the user to the hotline 1214.") from e
+
+
+async def _search_answer(catalog, tool: str, query: str, results: list) -> dict:
+    """Search always returns the closest records; only a strong match counts as found."""
+    strong = sum(r["match"] == "strong" for r in results)
+    await _log(tool, query, strong)
+    return _answer(catalog, results, found=bool(strong))
+
+
 async def _log(tool: str, query: str, results: int) -> None:
     async with module.db() as session:
         session.add(SearchLog(tool=tool, query=query[:500], results=results))
         await session.commit()
 
 
-def _answer(catalog, results: list, **extra) -> dict:
-    out = {"found": bool(results), "results": results, "data_as_of": catalog.data_date, **extra}
-    if not results:
+def _answer(catalog, results: list, found: bool | None = None, **extra) -> dict:
+    found = bool(results) if found is None else found
+    out = {"found": found, "results": results, "data_as_of": catalog.data_date, **extra}
+    if not found:
         out["fallback_contacts"] = catalog.contacts()
     return out
 
@@ -49,9 +65,8 @@ async def search_services(query: Query, ctx: Context) -> dict:
     forms and the official page. Use for "how do I get/apply for/register...", medicine assistance,
     licences, permits, registries, certificates."""
     catalog = await _catalog(ctx)
-    results = catalog.search_services(query, await embed_query(query))
-    await _log("search_services", query, len(results))
-    return _answer(catalog, results)
+    results = await _search(catalog.search_services(query))
+    return await _search_answer(catalog, "search_services", query, results)
 
 
 @module.mcp.tool()
@@ -65,27 +80,15 @@ async def get_service(service_id: int, ctx: Context) -> dict:
 
 
 @module.mcp.tool()
-async def get_official_facts(
-    ctx: Context,
-    query: Annotated[str, Field(description="Topic keywords; leave empty to get every fact")] = "",
-) -> dict:
-    """Curated, dated rules: what the ministry covers or pays and for whom (hospitalization, emergency,
-    dialysis, transplants, cancer and chronic-disease medicines, displaced people, free programmes),
-    and its hotlines. The most authoritative source: check it first for coverage and eligibility."""
-    catalog = await _catalog(ctx)
-    results = catalog.search_facts(query, await embed_query(query))
-    await _log("get_official_facts", query, len(results))
-    return _answer(catalog, results)
-
-
-@module.mcp.tool()
 async def search_ministry_site(query: Query, ctx: Context) -> dict:
-    """Search the ministry website's pages and news: programmes, campaigns, health guidance,
-    announcements and decisions. Each result has its date (when the site shows one) and URL."""
+    """Search the ministry website and its documents: pages and news (programmes, campaigns, health
+    guidance, announcements, what the ministry covers and for whom) and the files linked from them
+    (laws, ministerial decisions, circulars, memos, guidelines, reports). Each result has its kind
+    (page, news or document), date when known, text and URL; documents also say which page links
+    to them."""
     catalog = await _catalog(ctx)
-    results = catalog.search_pages(query, await embed_query(query))
-    await _log("search_ministry_site", query, len(results))
-    return _answer(catalog, results)
+    results = await _search(catalog.search_site(query))
+    return await _search_answer(catalog, "search_ministry_site", query, results)
 
 
 @module.mcp.tool()
@@ -124,8 +127,8 @@ async def find_facilities(
 @module.mcp.tool()
 async def get_contacts(ctx: Context) -> dict:
     """The ministry's hotlines, for when the user needs to talk to someone or nothing else answers."""
-    catalog = await _catalog(ctx)
-    return {"contacts": catalog.contacts()}
+    await module.user(ctx)
+    return {"contacts": Catalog.contacts()}
 
 
 @module.mcp.tool()

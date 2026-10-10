@@ -151,6 +151,7 @@ modules/noop/        # example module and the template for `h4h module new`
   ui/                # its admin page
 migrations/          # Alembic, core tables only
 modules.toml         # module registry
+sandpit/             # not part of the product: moph.gov.lb crawler and its data (crawler/, data/)
 tests/
 ```
 

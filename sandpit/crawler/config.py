@@ -19,7 +19,12 @@ RETRIES = 3
 BACKOFF_BASE = 2.0  # 2s, 4s, 8s
 MAX_FILE_BYTES = int(os.environ.get("WASEL_MAX_FILE_MB", "150")) * 1024 * 1024
 
-# Paths (repo root = parent of crawler/)
+# OCR of scanned PDFs (step "ocr", needs OPENAI_API_KEY)
+OCR_MODEL = os.environ.get("WASEL_OCR_MODEL", "gpt-6-luna")
+OCR_DPI = 200
+OCR_WORKERS = int(os.environ.get("WASEL_OCR_WORKERS", "8"))  # pages in flight
+
+# Paths (root = sandpit/, the parent of crawler/)
 ROOT = Path(os.environ.get("WASEL_ROOT", Path(__file__).resolve().parent.parent))
 DATA = ROOT / "data"
 RAW = DATA / "raw"

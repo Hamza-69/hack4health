@@ -275,6 +275,12 @@ def step_extract(workers: int = 3) -> None:
                 r["extract_note"] = res["note"]
             if res.get("pages"):
                 r["pages"] = res["pages"]
+    _write_files(recs)
+    log(f"extract: done ({sum(1 for r in results.values() if r['text_path'])} with text)")
+
+
+def _write_files(recs: List[Dict]) -> None:
+    """Rewrite files.jsonl with updated records."""
     tmp = C.FILES_JSONL.with_suffix(".jsonl.tmp")
     with tmp.open("w", encoding="utf-8") as fh:
         for r in recs:
@@ -284,4 +290,98 @@ def step_extract(workers: int = 3) -> None:
         _files.close()
         _files = None
     tmp.replace(C.FILES_JSONL)
-    log(f"extract: done ({sum(1 for r in results.values() if r['text_path'])} with text)")
+
+
+# --------------------------------------------------------------------------- OCR
+
+OCR_PROMPT = (
+    "This is a scanned page from a document of Lebanon's Ministry of Public Health. Transcribe all of its "
+    "text exactly, in its original language (usually Arabic), in reading order. Keep numbers, dates and "
+    "article numbers as written. Write tables as rows with ' | ' between cells. Leave out stamps and "
+    "signatures unless they contain readable text. Output only the transcription."
+)
+OCR_BATCH = 10  # files rendered at a time
+ARABIC_SHARE = 0.3  # PDF text layers this Arabic are in visual order with broken glyphs: unusable
+
+
+def _needs_ocr(r: Dict) -> bool:
+    """Scanned PDFs, and PDFs whose text layer is mostly Arabic."""
+    note = r.get("extract_note") or ""
+    if not r.get("text_path") or note.startswith("ocr:"):
+        return False
+    if note == "scanned_or_no_text":
+        return True
+    if r.get("type") != "pdf" or note:
+        return False
+    text = (C.ROOT / r["text_path"]).read_text(encoding="utf-8", errors="ignore")
+    return len(text) > 200 and len(re.findall(r"[\u0600-\u06FF]", text)) / len(text) > ARABIC_SHARE
+
+
+def _render_pages(path: Path) -> List[bytes]:
+    """Each page as a PNG. pdfium is not thread-safe, so this runs on the main thread only."""
+    import io
+    import pdfplumber
+    pngs = []
+    with pdfplumber.open(str(path)) as pdf:
+        for page in pdf.pages:
+            buf = io.BytesIO()
+            page.to_image(resolution=C.OCR_DPI).original.save(buf, format="PNG")
+            pngs.append(buf.getvalue())
+            page.flush_cache()
+    return pngs
+
+
+def _ocr_page(client, png: bytes) -> str:
+    import base64
+    resp = client.responses.create(
+        model=C.OCR_MODEL,
+        reasoning={"effort": "low"},
+        input=[{"role": "user", "content": [
+            {"type": "input_text", "text": OCR_PROMPT},
+            {"type": "input_image", "detail": "high",
+             "image_url": "data:image/png;base64," + base64.b64encode(png).decode()},
+        ]}],
+    )
+    return resp.output_text.strip()
+
+
+def step_ocr() -> None:
+    """OCR scanned PDFs and Arabic PDFs (see _needs_ocr) with an OpenAI vision model. Needs OPENAI_API_KEY.
+    The transcription replaces the .txt; a file that fails is left as it was and retried next run."""
+    import os
+    from concurrent.futures import ThreadPoolExecutor
+    if not os.environ.get("OPENAI_API_KEY"):
+        log("ocr: OPENAI_API_KEY not set, skipping")
+        return
+    if not C.FILES_JSONL.exists():
+        log("ocr: no files.jsonl yet")
+        return
+    from openai import OpenAI
+    client = OpenAI(max_retries=4, timeout=180)
+    recs = [json.loads(l) for l in C.FILES_JSONL.open(encoding="utf-8")]
+    todo = [r for r in recs if _needs_ocr(r)]
+    log(f"ocr: {len(todo)} files with {C.OCR_MODEL}")
+    done = pages = 0
+    with ThreadPoolExecutor(max_workers=C.OCR_WORKERS) as pool:
+        for start in range(0, len(todo), OCR_BATCH):
+            batch = []
+            for r in todo[start:start + OCR_BATCH]:
+                try:
+                    pngs = _render_pages(C.ROOT / r["local_path"])
+                except Exception as e:  # noqa
+                    log(f"  ocr: cannot render {r['local_path']}: {e}")
+                    continue
+                batch.append((r, [pool.submit(_ocr_page, client, png) for png in pngs]))
+            for r, futs in batch:
+                try:
+                    texts = [fu.result() for fu in futs]
+                except Exception as e:  # noqa
+                    log(f"  ocr failed {r['local_path']}: {type(e).__name__}: {str(e)[:120]}")
+                    continue
+                (C.ROOT / r["text_path"]).write_text("\n\n".join(texts).strip(), encoding="utf-8")
+                r["extract_note"] = f"ocr:{C.OCR_MODEL}"
+                done += 1
+                pages += len(texts)
+            _write_files(recs)
+            log(f"ocr: {start + len(batch)}/{len(todo)} files, {pages} pages")
+    log(f"ocr: done ({done}/{len(todo)} files, {pages} pages)")
