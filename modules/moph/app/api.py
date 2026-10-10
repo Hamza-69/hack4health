@@ -53,6 +53,7 @@ async def reload(admin: CurrentAdmin) -> dict:
     except FileNotFoundError as e:
         raise HTTPException(400, f"crawl file missing: {e.filename}") from e
     catalog.invalidate()
+    await catalog.get_catalog()  # embeds new texts now rather than on the next question
     return counts
 
 

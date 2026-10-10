@@ -4,6 +4,8 @@ Answers the public's questions about Lebanon's Ministry of Public Health from th
 
 ## Setup
 
+Add `OPENAI_API_KEY=...` to `modules/moph/.env` (not committed). Then:
+
 ```bash
 uv run h4h dev                                   # from the repo root; starts this module on :8002
 cd modules/moph && uv run python -m app.ingest   # once, and after every re-crawl
@@ -28,7 +30,7 @@ The answering rules live in the MCP server instructions (`app/module.py`). The a
 
 Every result says `found`, carries official links and `data_as_of`. An empty result also returns fallback contacts.
 
-Search is keyword based (BM25 with Arabic normalization and light stemming, `app/text.py`). The data is mostly Arabic, so the agent must search with Arabic keywords; the instructions tell it to add them. Drug names are matched in Latin letters, with typo tolerance.
+Services, pages and facts are searched by meaning with OpenAI embeddings (`app/embeddings.py`), so questions in English, Arabic or Arabizi find the Arabic data. Keyword search (BM25 with Arabic normalization, `app/text.py`) is fused in for exact terms like form numbers, and takes over when there is no API key (`app/hybrid.py`). Embeddings are cached in the module's database. Drug names are matched in Latin letters, with typo tolerance.
 
 ## Admin side
 

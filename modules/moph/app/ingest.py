@@ -11,6 +11,7 @@ import asyncio
 import csv
 import hashlib
 import json
+import logging
 import os
 from pathlib import Path
 
@@ -208,9 +209,18 @@ async def ensure_schema() -> None:
 
 
 async def _main() -> None:
+    from app import embeddings
+    from app.catalog import get_catalog
+
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     await ensure_schema()
     counts = await ingest(by="cli")
     print(f"Loaded from {data_dir()}: " + ", ".join(f"{k} {v}" for k, v in counts.items()))
+    if embeddings.enabled():
+        await get_catalog()  # embeds new texts now, so the first question is not slow
+        print(f"Embeddings ready ({embeddings.MODEL}).")
+    else:
+        print("OPENAI_API_KEY not set: search will use keywords only.")
     await module.engine.dispose()
 
 

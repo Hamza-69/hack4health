@@ -11,10 +11,14 @@ from mcp.server.mcpserver import Context
 from pydantic import Field
 
 from app.catalog import FacilityType, get_catalog
+from app.embeddings import embed_query
 from app.models import Gap, SearchLog
 from app.module import module
 
-Query = Annotated[str, Field(description="Arabic keywords plus English keywords, e.g. 'استلام أدوية السرطان cancer medicine'")]
+Query = Annotated[
+    str,
+    Field(description="The user's question or its key terms, in Arabic or English, e.g. 'how to get cancer medicine from the ministry'"),
+]
 
 
 async def _catalog(ctx: Context):
@@ -45,7 +49,7 @@ async def search_services(query: Query, ctx: Context) -> dict:
     forms and the official page. Use for "how do I get/apply for/register...", medicine assistance,
     licences, permits, registries, certificates."""
     catalog = await _catalog(ctx)
-    results = catalog.search_services(query)
+    results = catalog.search_services(query, await embed_query(query))
     await _log("search_services", query, len(results))
     return _answer(catalog, results)
 
@@ -69,7 +73,7 @@ async def get_official_facts(
     dialysis, transplants, cancer and chronic-disease medicines, displaced people, free programmes),
     and its hotlines. The most authoritative source: check it first for coverage and eligibility."""
     catalog = await _catalog(ctx)
-    results = catalog.search_facts(query)
+    results = catalog.search_facts(query, await embed_query(query))
     await _log("get_official_facts", query, len(results))
     return _answer(catalog, results)
 
@@ -79,7 +83,7 @@ async def search_ministry_site(query: Query, ctx: Context) -> dict:
     """Search the ministry website's pages and news: programmes, campaigns, health guidance,
     announcements and decisions. Each result has its date (when the site shows one) and URL."""
     catalog = await _catalog(ctx)
-    results = catalog.search_pages(query)
+    results = catalog.search_pages(query, await embed_query(query))
     await _log("search_ministry_site", query, len(results))
     return _answer(catalog, results)
 

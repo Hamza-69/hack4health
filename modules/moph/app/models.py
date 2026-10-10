@@ -2,13 +2,13 @@
 
 Two kinds:
 - Crawled data (services, pages, drugs, free_meds, facilities): replaced as a whole by app.ingest.
-- Admin data (facts, gaps, search_log, ingest_runs): kept across ingests. Facts are the
-  curated, dated rules the agent treats as the most authoritative source.
+- Admin data (facts, gaps, search_log, ingest_runs) and the embeddings cache: kept across ingests.
+  Facts are the curated, dated rules the agent treats as the most authoritative source.
 """
 
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, DateTime, Float, Integer, String, Text, func
+from sqlalchemy import JSON, Boolean, DateTime, Float, Integer, LargeBinary, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.module import module
@@ -138,6 +138,15 @@ class SearchLog(module.Base):
     query: Mapped[str] = mapped_column(Text)
     results: Mapped[int] = mapped_column(Integer)
     created_at: Mapped[datetime] = _created()
+
+
+class Embedding(module.Base):
+    """Cached embedding vector of one text. Kept across ingests; see app.embeddings."""
+
+    __tablename__ = "embeddings"
+
+    key: Mapped[str] = mapped_column(String(40), primary_key=True)  # sha1 of model, dims and text
+    vector: Mapped[bytes] = mapped_column(LargeBinary)  # float32, unit length
 
 
 class IngestRun(module.Base):

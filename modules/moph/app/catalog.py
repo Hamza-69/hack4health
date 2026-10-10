@@ -1,6 +1,10 @@
 """Search over everything the module knows. Pure Python over plain rows, so it is testable without a
 database: tools build it from the tables (get_catalog), tests from the files (app.ingest.load_files).
 
+Services, site pages and facts are searched by meaning (embeddings) fused with keywords, see
+app.hybrid; search methods take the query's vector from app.embeddings.embed_query. Drugs and
+facilities are matched by name and filters instead.
+
 Every result carries its official source URL, and dates where the source has them, so the agent
 can cite and date what it says.
 """
@@ -9,10 +13,12 @@ import asyncio
 from collections import defaultdict
 from typing import Literal
 
+import numpy as np
 from rapidfuzz import fuzz, process
 from sqlalchemy import select
 
-from app.bm25 import BM25
+from app import embeddings
+from app.hybrid import HybridIndex
 from app.text import is_arabic, normalize
 
 FacilityType = Literal[
@@ -44,13 +50,6 @@ FREE_LISTS = {
     "allocation_free": "Allocation list of medicines MoPH provides (2024)",
 }
 
-STRONG = 0.5  # share of query terms a result must contain to count as a strong match
-
-
-def _strength(coverage: float) -> str:
-    return "strong" if coverage >= STRONG else "weak"
-
-
 def _lines(value) -> list[str]:
     if not value:
         return []
@@ -73,11 +72,17 @@ class Catalog:
         self.facilities = rows["facilities"]
         self.facts = [f for f in rows["facts"] if f.get("active", True)]
 
-        self._services_index = BM25([self._service_doc(s["data"]) for s in self.services])
-        self._pages_index = BM25([f"{p['title']}\n{p['title']}\n{p['text']}" for p in self.pages])
-        self._facts_index = BM25(
-            [f"{f['topic'].replace('_', ' ')}\n{f['rule']}\n{f['who_is_eligible']}\n{f['where']}" for f in self.facts]
+        services = [self._service_doc(s["data"]) for s in self.services]
+        title = [s["title"] for s in self.services]
+        self.services_index = HybridIndex([f"{t}\n{t}\n{d}" for t, d in zip(title, services)], services)
+        self.pages_index = HybridIndex(
+            [f"{p['title']}\n{p['title']}\n{p['text']}" for p in self.pages],
+            [f"{p['title']}\n{p['text']}" for p in self.pages],
         )
+        facts = [
+            f"{f['topic'].replace('_', ' ')}\n{f['rule']}\n{f['who_is_eligible']}\n{f['where']}" for f in self.facts
+        ]
+        self.facts_index = HybridIndex(facts, facts)
 
         self._brands = [normalize(d["brand_name"]) for d in self.drugs]
         self._ingredients = [normalize(d["ingredients"]) for d in self.drugs]
@@ -94,8 +99,7 @@ class Catalog:
 
     @staticmethod
     def _service_doc(s: dict) -> str:
-        title = s.get("title_ar") or ""
-        parts = [title, title, title, s.get("department_ar"), s.get("department_en"), s.get("listing_section"),
+        parts = [s.get("title_ar"), s.get("department_ar"), s.get("department_en"), s.get("listing_section"),
                  s.get("listing_unit"), s.get("responsible_unit"), s.get("eligibility"),
                  *_lines(s.get("documents")), *_lines(s.get("form_labels")), *_lines(s.get("steps"))]
         return "\n".join(p for p in parts if p)
@@ -131,12 +135,11 @@ class Catalog:
         card["office"] = {k: v for k, v in card["office"].items() if v}
         return {k: v for k, v in card.items() if v not in (None, "", [], {})}
 
-    def search_services(self, query: str, limit: int = 3) -> list[dict]:
-        out = []
-        for hit in self._services_index.search(query, limit):
-            card = self.service_card(self.services[hit.index]["data"])
-            out.append({"match": _strength(hit.coverage), **card})
-        return out
+    def search_services(self, query: str, vector: np.ndarray | None = None, limit: int = 3) -> list[dict]:
+        return [
+            {"match": hit.match, **self.service_card(self.services[hit.index]["data"])}
+            for hit in self.services_index.search(query, vector, limit)
+        ]
 
     def get_service(self, service_id: int) -> dict | None:
         for s in self.services:
@@ -146,8 +149,8 @@ class Catalog:
 
     # Site pages and news
 
-    def search_pages(self, query: str, limit: int = 5) -> list[dict]:
-        hits = self._pages_index.search(query, limit * 6)
+    def search_pages(self, query: str, vector: np.ndarray | None = None, limit: int = 5) -> list[dict]:
+        hits = self.pages_index.search(query, vector, limit * 6)
         # Prefer recent items a little: rules and announcements change.
         ranked = sorted(
             hits,
@@ -162,7 +165,7 @@ class Catalog:
             per_url[p["url"]] += 1
             out.append(
                 {
-                    "match": _strength(hit.coverage),
+                    "match": hit.match,
                     "title": p["title"],
                     "date": p["date"],
                     "kind": p["section"],
@@ -191,12 +194,12 @@ class Catalog:
         }
         return {k: v for k, v in card.items() if v}
 
-    def search_facts(self, query: str | None, limit: int = 8) -> list[dict]:
+    def search_facts(self, query: str | None, vector: np.ndarray | None = None, limit: int = 8) -> list[dict]:
         if not query or not query.strip():
             return [self.fact_card(f) for f in self.facts]
         return [
-            {"match": _strength(h.coverage), **self.fact_card(self.facts[h.index])}
-            for h in self._facts_index.search(query, limit)
+            {"match": h.match, **self.fact_card(self.facts[h.index])}
+            for h in self.facts_index.search(query, vector, limit)
         ]
 
     def contacts(self) -> list[dict]:
@@ -349,4 +352,12 @@ async def _load() -> Catalog:
         }
         last = await session.scalar(select(IngestRun).order_by(IngestRun.id.desc()).limit(1))
     rows["data_date"] = last.data_date if last else ""
-    return await asyncio.to_thread(Catalog, rows)
+    catalog = await asyncio.to_thread(Catalog, rows)
+    await attach_vectors(catalog)
+    return catalog
+
+
+async def attach_vectors(catalog: Catalog) -> None:
+    """Give the catalog's indexes their embeddings (cached, or fetched once). No-op without a key."""
+    for index in (catalog.services_index, catalog.pages_index, catalog.facts_index):
+        index.vectors = await embeddings.embed_documents(index.semantic_texts)
