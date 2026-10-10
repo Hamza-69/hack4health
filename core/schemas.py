@@ -58,7 +58,8 @@ class TicketOut(AdminTicketOut):
 
 
 class TicketIn(BaseModel):
-    user_id: uuid.UUID
+    # The user token the module received in `_meta`, not a bare id: proof the user called it.
+    user_token: str
     title: str
     details: str | None = None
 

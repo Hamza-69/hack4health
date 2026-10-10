@@ -44,10 +44,10 @@ The core signs JWTs (EdDSA) with `keys/private.pem` and publishes the public key
 |---|---|---|---|
 | session | admin panel → core | `core` | 12h, from login |
 | module | module → core | `core` | no expiry; removing the module from `modules.toml` revokes it |
-| user | core → module MCP server, in `_meta["h4h/user_token"]` | the module | 5 min, minted per tool call |
+| user | core → module MCP server, in `_meta["h4h/user_token"]`; module → core when creating a ticket | the module | 5 min, minted per tool call |
 | admin | admin panel → module UI → module backend | the module | 15 min |
 
-- **User token**: the model never sees the user id and cannot change it. The module gets it with `await module.user(ctx)`.
+- **User token**: the model never sees the user id and cannot change it. The SDK refuses any tool call without a valid one before the tool runs; tools get the user with `await module.user(ctx)`. To create a ticket, the module hands the same token back to the core instead of a bare user id, and the core verifies it was minted for that module, so a module can't open tickets for users who never called it.
 - **Admin token**: the shell gets it from `POST /admin/modules/<name>/token` and hands it to the iframe with `postMessage` (never in the URL). The module UI sends it as `Authorization: Bearer <token>` to its backend. A minute before expiry, or after a 401, the UI asks the shell for a fresh one. Protocol: `sdk/ui/src/protocol.ts`.
 
 ## Identity

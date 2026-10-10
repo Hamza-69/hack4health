@@ -3,7 +3,6 @@ import os
 import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
 from pathlib import Path
 
 import jwt
@@ -12,40 +11,28 @@ from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.staticfiles import StaticFiles
+from mcp.server.context import CallNext, HandlerResult, ServerRequestContext
 from mcp.server.mcpserver import Context, MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
+from mcp_types import CallToolResult, TextContent
 from sqlalchemy import MetaData, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
 from h4h.core_client import CoreClient, CoreError
 from h4h.tokens import USER_TOKEN_META_KEY, TokenType, verify
+from h4h.users import Admin, User
 
 DEFAULT_DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/hack4health"
 
 _bearer = HTTPBearer()
 
 
-@dataclass(frozen=True)
-class User:
-    """The chat user a tool call is for. Comes from the core-signed token in `_meta`."""
-
-    id: uuid.UUID
-
-
-@dataclass(frozen=True)
-class Admin:
-    """The admin panel user calling this module's API. Comes from the admin token."""
-
-    id: uuid.UUID
-    email: str
-    role: str  # operator | supplier
-
-
 class Module:
     """Everything a module needs. Create one per module, register tools and routes, call app().
 
-    - `mcp`: the MCP server; tools call `await module.user(ctx)` to get the user.
+    - `mcp`: the MCP server. Every tool call must carry a valid user token, or it is refused
+      before the tool runs; tools call `await module.user(ctx)` to get the user.
     - `api`: router mounted at /api for the module's admin UI; every route requires an admin token.
     - `Base`: declarative base whose tables live in this module's own Postgres schema.
     - `db`: session factory; `session` is the same as a FastAPI dependency.
@@ -57,7 +44,9 @@ class Module:
         self.name = name
         self.core_url = os.environ.get("CORE_URL", "http://localhost:8000")
 
-        self.mcp = MCPServer(name, title=title, instructions=instructions)
+        self.mcp = MCPServer(
+            name, title=title, instructions=instructions, middleware=[self._require_user_token]
+        )
         self.api = APIRouter(prefix="/api", dependencies=[Depends(self.admin)])
 
         class Base(DeclarativeBase):
@@ -71,15 +60,30 @@ class Module:
         self._jwks = jwt.PyJWKClient(f"{self.core_url}/.well-known/jwks.json")
 
     async def user(self, ctx: Context) -> User:
-        """The user this tool call is for. Raises if the call carries no valid user token."""
-        token = (ctx.request_context.meta or {}).get(USER_TOKEN_META_KEY)
+        """The user this tool call is for."""
+        return await self._user_from_meta(ctx.request_context.meta)
+
+    async def _user_from_meta(self, meta) -> User:
+        token = (meta or {}).get(USER_TOKEN_META_KEY)
         if not token:
             raise ToolError("no user token in _meta; call tools through the core")
         try:
             claims = await self._verify(token, TokenType.USER)
         except jwt.PyJWTError as e:
             raise ToolError(f"invalid user token: {e}") from e
-        return User(id=uuid.UUID(claims["sub"]))
+        return User(id=uuid.UUID(claims["sub"]), token=token)
+
+    async def _require_user_token(
+        self, ctx: ServerRequestContext, call_next: CallNext
+    ) -> HandlerResult:
+        """MCP middleware: refuse every tool call without a valid user token, before the tool
+        runs. A tool that never calls module.user() is still closed to callers without one."""
+        if ctx.method == "tools/call":
+            try:
+                await self._user_from_meta(ctx.meta)
+            except ToolError as e:
+                return CallToolResult(content=[TextContent(type="text", text=str(e))], is_error=True)
+        return await call_next(ctx)
 
     async def admin(
         self, credentials: HTTPAuthorizationCredentials = Depends(_bearer)

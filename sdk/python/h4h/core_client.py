@@ -5,6 +5,8 @@ import httpx
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import BaseModel
 
+from h4h.users import User
+
 
 class Ticket(BaseModel):
     id: uuid.UUID
@@ -37,10 +39,13 @@ class CoreClient:
         self._token = module_token
         self._http = httpx.AsyncClient(base_url=f"{core_url}/module", timeout=10)
 
-    async def create_ticket(
-        self, user_id: uuid.UUID, title: str, details: str | None = None
-    ) -> Ticket:
-        body = {"user_id": str(user_id), "title": title, "details": details}
+    async def create_ticket(self, user: User, title: str, details: str | None = None) -> Ticket:
+        """Open a ticket for the user of the current tool call.
+
+        Sends the user's token, not their id, so the core can check the user really called this
+        module. Tokens last 5 minutes, so create the ticket while handling the tool call.
+        """
+        body = {"user_token": user.token, "title": title, "details": details}
         return Ticket.model_validate(await self._request("POST", "/tickets", json=body))
 
     async def get_ticket(self, ticket_id: uuid.UUID | str) -> Ticket:

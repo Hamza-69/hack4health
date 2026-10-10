@@ -2,9 +2,11 @@
 
 import uuid
 
+import jwt
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import func, select
 
+from core import tokens
 from core.auth import DB, CurrentModule
 from core.chat import lock_user
 from core.models import Ticket, TicketStatus
@@ -23,8 +25,12 @@ async def _own_ticket(session: DB, module: ModuleConfig, ticket_id: uuid.UUID) -
 
 @router.post("/tickets")
 async def create_ticket(body: TicketIn, module: CurrentModule, session: DB) -> TicketOut:
-    await lock_user(session, body.user_id)
-    ticket = Ticket(user_id=body.user_id, kind=module.name, title=body.title, details=body.details)
+    try:
+        user_id = tokens.verify_user_token(body.user_token, module.name)
+    except jwt.PyJWTError as e:
+        raise HTTPException(403, f"invalid user token: {e}") from e
+    await lock_user(session, user_id)
+    ticket = Ticket(user_id=user_id, kind=module.name, title=body.title, details=body.details)
     session.add(ticket)
     await session.commit()
     await session.refresh(ticket)

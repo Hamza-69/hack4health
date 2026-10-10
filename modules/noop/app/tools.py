@@ -1,5 +1,6 @@
 """MCP tools the agent can call. Each call carries the user in `_meta`; get it with module.user(ctx).
 
+The SDK refuses any call without a valid user token before a tool runs.
 Raise ToolError for failures the agent should read; any other exception is hidden as a crash.
 """
 
@@ -21,7 +22,7 @@ async def ping(ctx: Context) -> str:
 async def open_request(title: str, details: str, ctx: Context) -> dict:
     """Open a request for the user. A supplier answers it from the admin panel."""
     user = await module.user(ctx)
-    ticket = await module.core.create_ticket(user.id, title, details)
+    ticket = await module.core.create_ticket(user, title, details)
     return {"ticket_id": str(ticket.id), "status": ticket.status}
 
 

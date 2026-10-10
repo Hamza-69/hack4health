@@ -87,6 +87,11 @@ def module_token(module: str) -> str:
     return mint(TokenType.MODULE, module, CORE_AUDIENCE, None)
 
 
+def verify_user_token(token: str, module: str) -> uuid.UUID:
+    """A user token the core minted for `module`, handed back by that module as proof."""
+    return uuid.UUID(verify(token, _public_key(), audience=module, typ=TokenType.USER)["sub"])
+
+
 def verify_core_token(token: str, typ: TokenType) -> dict:
     """Verify a token addressed to the core (session or module token)."""
     return verify(token, _public_key(), audience=CORE_AUDIENCE, typ=typ)
