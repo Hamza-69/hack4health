@@ -53,8 +53,8 @@ uv run h4h admin create pharmacist@example.com --role supplier --module pharmacy
 
 Python (`from h4h import ...`, module object in `app/module.py`):
 
-- `user = await module.user(ctx)` in a tool: the chat user. The id comes from a core-signed token, never from the model.
-- `module.core.create_ticket(user.id, title, details)`, `.get_ticket(id)`, `.list_tickets()`, `.update_ticket(id, status=..., resolution=...)`, `.notify(id, message)`: the core's ticket API. A module only sees its own tickets.
+- `user = await module.user(ctx)` in a tool: the chat user. The id comes from a core-signed token, never from the model. Calls without a valid token are refused before any tool runs, so a tool can't be left open by accident.
+- `module.core.create_ticket(user, title, details)` (sends the user's token as proof, so call it while handling the tool call), `.get_ticket(id)`, `.list_tickets()`, `.update_ticket(id, status=..., resolution=...)`, `.notify(id, message)`: the core's ticket API. A module only sees its own tickets.
 - `raise ToolError("...")` for failures the agent should read. Any other exception reaches the agent as a generic error.
 - `class Thing(module.Base)` for tables. They're created on startup in the module's schema. Store `ticket_id` to link to tickets; there are no foreign keys into the core.
 - `@module.api.get("/things")` for admin routes. Every route requires an admin token; add `admin: Admin = Depends(module.admin)` to know who is calling.

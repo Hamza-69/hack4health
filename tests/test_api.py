@@ -55,7 +55,9 @@ async def test_supplier_only_opens_their_modules(client, session):
 async def test_module_ticket_flow(client, session):
     user_id = uuid.uuid4()
     created = await client.post(
-        "/module/tickets", headers=as_module(), json={"user_id": str(user_id), "title": "Refill"}
+        "/module/tickets",
+        headers=as_module(),
+        json={"user_token": tokens.user_token(user_id, "testmod"), "title": "Refill"},
     )
     assert created.status_code == 200
     ticket = created.json()
@@ -80,8 +82,26 @@ async def test_module_ticket_flow(client, session):
 
 async def test_module_only_sees_its_own_tickets(client, session):
     created = await client.post(
-        "/module/tickets", headers=as_module(), json={"user_id": str(uuid.uuid4()), "title": "t"}
+        "/module/tickets",
+        headers=as_module(),
+        json={"user_token": tokens.user_token(uuid.uuid4(), "testmod"), "title": "t"},
     )
     # A module removed from the registry loses access.
     response = await client.get(f"/module/tickets/{created.json()['id']}", headers=as_module("ghost"))
     assert response.status_code == 401
+
+
+@pytest.mark.parametrize(
+    "user_token",
+    [
+        tokens.user_token(uuid.uuid4(), "othermod"),  # minted for another module
+        tokens.admin_token(uuid.uuid4(), "a@b.c", "operator", "testmod"),  # wrong kind of token
+        str(uuid.uuid4()),  # a bare id instead of a token
+    ],
+    ids=["other module", "admin token", "bare id"],
+)
+async def test_ticket_needs_a_user_token_minted_for_this_module(client, user_token):
+    response = await client.post(
+        "/module/tickets", headers=as_module(), json={"user_token": user_token, "title": "t"}
+    )
+    assert response.status_code == 403
