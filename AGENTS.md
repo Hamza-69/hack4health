@@ -197,6 +197,16 @@ The core signs JWTs (EdDSA) with `keys/private.pem` and publishes the public key
 - Phone numbers are normalized to E.164 before hashing.
 - The core keeps the normalized account id in `users.address` (and the app in `users.app`) to send replies.
 
+## Privacy
+
+What a judge asks (what is collected, who sees it, where a human stays in the loop) is answered for users at `/privacy` on the site (`clients/web/app/static/privacy.html`); keep that page true when this changes.
+
+- **Staff never see chats.** The admin panel shows tickets and module data only; a desk sees a request the user confirmed (form and documents).
+- **Retention** (`core/privacy.py`, hourly): archived chats are deleted `CHAT_RETENTION_DAYS` (default 30) after archiving; a live chat is cleared that long after the user's last message unless one of their tickets is open.
+- **Delete my data**: the agent's `delete_my_data` tool, called after the user confirms. Once the reply is sent, the run clears the live chat, deletes the archives and blanks the resolution notes. Tickets stay: they are the ministry's records.
+- **Masking**: `h4h.privacy.mask_personal` hides e-mails, numbers of 7+ digits and introduced names in anything a module keeps for staff (moph: unanswered questions, searches, rumours).
+- Voice notes are transcribed and not kept; photos and PDFs are kept at unguessable links for the desk.
+
 ## Data model
 
 ```
@@ -207,6 +217,7 @@ users
   app, address          -- where replies go: wa | tg | web, normalized account id
   current_ticket_id     → tickets.id, nullable
   agent_running_since   timestamp, nullable
+  last_active_at        timestamp  -- the user's last message; drives chat retention
 
 tickets
   id, user_id
