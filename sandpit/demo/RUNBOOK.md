@@ -24,9 +24,19 @@ The jury demo lasts 3 minutes, and the stage version 10. Everything runs on the 
 
 Rehearse the whole story without a phone: `uv run python -m sandpit.eval.demo_flow --lang lb`.
 
+## Second story: "send a photo of your bill"
+
+For the 10-minute stage demo, or if a judge asks about hospitals charging extra. The prop is the fourth page of `specimens.html` (open `specimens.html#bill` to show it alone, or send `sandpit/demo/bill.png` in the web chat). Al Sindyan Governmental Hospital is fictional, so no real hospital is shown overcharging: the bills module knows it only as a demo hospital (`BILLS_DEMO=0` removes it).
+
+1. Send the bill photo with «بدهن ياني إدفع هيدا قبل ما يطلّعو خيي، طبيعي؟»
+   - The bill says Lebanese and uninsured, so Wasel usually answers straight away. If it asks about other cover, reply «لبناني، ما عندو ضمان ولا تأمين».
+   - Wasel answers: 100% at a government hospital, not the 80% on the bill, with the 2 July 2026 statement; it mentions 1787 and offers to report it. Reply «إيه بلّغ».
+2. Wasel confirms the name, date and amount from the bill, asks whether it was paid, and shows a summary. Confirm and you get **R-501**.
+3. **On the laptop**, admin panel → Hospital Bills: R-501 with the bill and the rule Wasel applied. Press **Take it up with the hospital**; the phone buzzes. Show **By hospital** (the evidence for the 1 Oct joint follow-up) and **Rules Wasel applies**.
+
 ## If something breaks
 
 - **WhatsApp is down:** use the web chat. Photos there are typed as `[photo <url>] <what the document is>`.
 - **A reply is slow:** search replies take 5–10 seconds, so keep talking over it.
 - **Starting over:** run the reset (step 2), and press New chat in the web chat.
-- **Facts not to claim:** that hernia specifically is covered (the data never names it), or that 1787 is the complaints line (it's 1214).
+- **Facts not to claim:** that hernia specifically is covered (the data never names it), or that 1787 is the general complaints line (that's 1214; 1787 is only for patients charged differences, per the 14 Mar 2026 circular).

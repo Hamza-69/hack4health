@@ -21,15 +21,24 @@
   p { font-size: 14px; line-height: 1.9; }
   .sign { display: flex; justify-content: space-between; margin-top: 14mm; font-size: 13px; }
   .stamp { border: 2px dashed #2f6fb3; color: #2f6fb3; border-radius: 50%; width: 34mm; height: 34mm; display: flex; align-items: center; justify-content: center; text-align: center; font: 600 10px system-ui, sans-serif; transform: rotate(-8deg); }
+  .total td { font-weight: 700; }
+  .due td { font-weight: 700; color: #b42318; }
+  .amount { text-align: left; direction: ltr; white-space: nowrap; }
   .photo { width: 28mm; height: 34mm; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--muted); float: left; margin: 0 0 4mm 4mm; }
+  body.single .note, body.single .page:not(.only) { display: none; }
   @media print { body { background: #fff; } .note { display: none; } .page { box-shadow: none; margin: 0 auto; } }
 </style>
 </head>
 <body>
 <div class="note">
-  Demo props for step 2 of the demo: print these three pages, or show them on a second screen, and photograph them with the demo phone.
+  Demo props for step 2 of the demo: print the first three pages, or show them on a second screen, and photograph them with the demo phone.
   Ali Haddad, the doctor and the reference numbers are fictional; every page is marked as a demo specimen.
   For the "missing document" moment, send the medical report and the NSSF statement first, then the civil registry extract.
+  <br><br>
+  The fourth page is the hospital bill for the "send a photo of your bill" story. Al Sindyan Governmental Hospital and Sami Nasr are
+  fictional (the bills module knows the hospital as a demo hospital). The bill applied the old 80% share and asks for the other
+  20% before discharge, for an emergency operation the ministry now covers in full. Open specimens.html#bill to show only the bill;
+  sandpit/demo/bill.png is the same page as a photo for the web chat.
 </div>
 
 <section class="page">
@@ -89,5 +98,41 @@
     <div class="stamp">ختم الدائرة<br>(نموذج)</div>
   </div>
 </section>
+<section class="page" id="bill">
+  <div class="banner">DEMO SPECIMEN · FICTIONAL HOSPITAL AND PATIENT · NOT AN OFFICIAL DOCUMENT</div>
+  <div class="head"><span>مستشفى السنديان الحكومي</span><span>التاريخ: 2026/10/10</span></div>
+  <h1>فاتورة خروج</h1>
+  <h2>كشف حساب المريض</h2>
+  <table>
+    <tr><td>اسم المريض</td><td>سامي نصر</td></tr>
+    <tr><td>الجنسية</td><td>لبنانية</td></tr>
+    <tr><td>الجهة الضامنة</td><td>وزارة الصحة العامة (غير مضمون)</td></tr>
+    <tr><td>الدخول / الخروج</td><td>2026/10/08 (طوارئ) ← 2026/10/10</td></tr>
+    <tr><td>العمل الطبي</td><td>استئصال الزائدة الدودية</td></tr>
+  </table>
+  <br>
+  <table>
+    <tr><td>الإقامة (ليلتان)</td><td class="amount">36,000,000 L.L.</td></tr>
+    <tr><td>غرفة العمليات والتخدير</td><td class="amount">72,000,000 L.L.</td></tr>
+    <tr><td>أتعاب الأطباء</td><td class="amount">63,000,000 L.L.</td></tr>
+    <tr><td>أدوية ومستلزمات</td><td class="amount">36,000,000 L.L.</td></tr>
+    <tr><td>مختبر وأشعة</td><td class="amount">18,000,000 L.L.</td></tr>
+    <tr class="total"><td>المجموع</td><td class="amount">225,000,000 L.L.</td></tr>
+    <tr><td>حصة وزارة الصحة العامة (80%)</td><td class="amount">180,000,000 L.L.</td></tr>
+    <tr class="due"><td>المطلوب من المريض (فروقات 20%)</td><td class="amount">45,000,000 L.L.</td></tr>
+  </table>
+  <p>يرجى تسديد المبلغ المطلوب من المريض في قسم المحاسبة قبل الخروج.</p>
+  <div class="sign">
+    <div>قسم المحاسبة<br>التوقيع: ..................</div>
+    <div class="stamp">ختم المستشفى<br>(نموذج)</div>
+  </div>
+</section>
+<script>
+  // specimens.html#bill shows only the bill, for a clean photo or screenshot
+  if (location.hash.length > 1) {
+    const page = document.getElementById(location.hash.slice(1));
+    if (page) { page.classList.add("only"); document.body.classList.add("single"); }
+  }
+</script>
 </body>
 </html>
