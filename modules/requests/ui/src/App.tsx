@@ -106,22 +106,22 @@ export default function App() {
 
   return (
     <div className="flex h-screen flex-col bg-gray-50 text-gray-900">
-      <header className="flex items-end justify-between border-b border-gray-200 bg-white px-6 py-4">
+      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b border-gray-200 bg-white px-6 py-4">
         <div>
-          <h1 className="text-xl font-semibold">Ministry Inbox</h1>
+          <h1 className="text-xl font-semibold whitespace-nowrap">Ministry Inbox</h1>
           <p className="text-sm text-gray-500">Requests prepared and checked by Wasel, ready for a decision</p>
         </div>
-        <div className="flex items-center gap-4 text-sm">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
           <Count n={counts("submitted")} label="new" className="text-blue-700" />
           <Count n={counts("needs_info")} label="waiting for patient" className="text-amber-700" />
           <Count n={counts("approved")} label="approved" className="text-emerald-700" />
           <Count n={counts("declined")} label="declined" className="text-rose-700" />
-          <span className="border-l border-gray-200 pl-4 text-gray-500">{admin.email}</span>
+          <span className="hidden border-l border-gray-200 pl-4 text-gray-500 xl:inline">{admin.email}</span>
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1">
-        <aside className="flex w-96 shrink-0 flex-col border-r border-gray-200 bg-white">
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        <aside className="flex max-h-72 w-full shrink-0 flex-col border-b border-gray-200 bg-white lg:max-h-none lg:w-80 lg:border-r lg:border-b-0 xl:w-96">
           <div className="flex gap-1 border-b border-gray-200 px-3 py-2">
             {(["open", "all"] as const).map((f) => (
               <button
@@ -178,7 +178,7 @@ export default function App() {
 
 function Count({ n, label, className }: { n: number; label: string; className: string }) {
   return (
-    <span className="text-gray-500">
+    <span className="whitespace-nowrap text-gray-500">
       <span className={`text-base font-semibold ${className}`}>{n}</span> {label}
     </span>
   );
@@ -225,18 +225,18 @@ function RequestDetail({ number }: { number: number }) {
 
   return (
     <div className="mx-auto max-w-4xl space-y-4 p-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h2 className="font-mono text-2xl font-semibold">{r.code}</h2>
+            <h2 className="font-mono text-2xl font-semibold whitespace-nowrap">{r.code}</h2>
             <Badge status={r.status} />
           </div>
           <div className="mt-1 text-gray-700">{r.service_title}</div>
-          <div className="text-gray-500" dir="rtl" lang="ar">
+          <div className="text-gray-500" lang="ar">
             {r.service_title_ar}
           </div>
         </div>
-        <div className="text-right text-sm text-gray-500">
+        <div className="text-sm text-gray-500 sm:text-right">
           <div>Submitted {when(r.created_at)}</div>
           <div className={r.overdue ? "font-medium text-rose-600" : ""}>Decision due {when(r.decision_due)}</div>
         </div>
@@ -255,14 +255,14 @@ function RequestDetail({ number }: { number: number }) {
       <Section title="Application form">
         <dl className="divide-y divide-gray-100">
           {r.fields.map((f) => (
-            <div key={f.key} className="grid grid-cols-5 gap-4 py-2 text-sm">
-              <dt className="col-span-2 text-gray-500">
+            <div key={f.key} className="grid gap-1 py-2 text-sm sm:grid-cols-5 sm:gap-4">
+              <dt className="text-gray-500 sm:col-span-2">
                 {f.label_en}
-                <div className="text-xs text-gray-400" dir="rtl" lang="ar">
+                <div className="text-xs text-gray-400" lang="ar">
                   {f.label_ar}
                 </div>
               </dt>
-              <dd className="col-span-3 font-medium">{f.value || <span className="text-gray-400">—</span>}</dd>
+              <dd className="font-medium sm:col-span-3">{f.value || <span className="text-gray-400">—</span>}</dd>
             </div>
           ))}
         </dl>
@@ -293,7 +293,7 @@ function RequestDetail({ number }: { number: number }) {
             >
               <Thumb url={d.url} />
               <div className="p-2">
-                <div className="text-xs font-medium">{d.label_en}</div>
+                <div className="line-clamp-2 text-xs font-medium" title={d.label_en}>{d.label_en}</div>
                 {d.description && <div className="mt-0.5 line-clamp-2 text-xs text-gray-500">{d.description}</div>}
               </div>
             </a>
@@ -341,7 +341,7 @@ function RequestDetail({ number }: { number: number }) {
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
           />
           <p className="mt-1 text-xs text-gray-500">Wasel tells the patient on WhatsApp, in their own language, as soon as you decide.</p>
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             <button
               onClick={() => decide("approve")}
               disabled={busy !== null}
