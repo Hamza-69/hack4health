@@ -156,14 +156,15 @@ async def _existing_ids(index, namespace: str) -> set[str]:
     return ids
 
 
-async def sync(namespace: str, records: list[Record]) -> dict[str, int]:
-    """Make the namespace hold exactly these records. Only new or changed records are embedded."""
+async def sync(namespace: str, records: list[Record], keep_prefix: str | None = None) -> dict[str, int]:
+    """Make the namespace hold exactly these records. Only new or changed records are embedded.
+    Vectors whose id starts with `keep_prefix` are never deleted (data this machine does not have)."""
     await ensure_index()
     index = await _get_index()
     wanted = {_vector_id(r): r for r in records}
     existing = await _existing_ids(index, namespace)
     new = [vid for vid in wanted if vid not in existing]
-    stale = sorted(existing - wanted.keys())
+    stale = sorted(vid for vid in existing - wanted.keys() if not (keep_prefix and vid.startswith(keep_prefix)))
     for start in range(0, len(new), SYNC_SLICE):
         ids = new[start : start + SYNC_SLICE]
         vectors = await embed([wanted[vid].text for vid in ids])

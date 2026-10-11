@@ -34,6 +34,8 @@ DOCUMENT_TYPES = {"pdf", "docx", "doc"}  # Excel files are tables (price lists),
 # Listing pages that repeat other pages' content.
 SKIP_TITLES = {normalize("آخر ألأخبار"), normalize("آخر الأخبار"), "latest news"}
 
+log = logging.getLogger(__name__)
+
 
 def data_dir() -> Path:
     return Path(os.environ.get("MOPH_DATA_DIR", DEFAULT_DATA_DIR))
@@ -271,8 +273,13 @@ async def ingest(root: Path | None = None, by: str = "cli") -> dict:
                 await session.execute(insert(model), rows[name][start : start + 2000])
             counts[name] = len(rows[name])
         await session.commit()
+    # The documents' text (downloaded, extracted, OCR'd) lives only on the machine that crawled them.
+    # Without it here, keep the documents already in the index instead of deleting them.
+    keep = None if rows["documents"] else "doc-"
+    if keep:
+        log.warning("no document text in %s: keeping the documents already in the search index", root or data_dir())
     for namespace, records in index_records(rows).items():
-        counts[f"index_{namespace}"] = await search_index.sync(namespace, records)
+        counts[f"index_{namespace}"] = await search_index.sync(namespace, records, keep_prefix=keep)
     async with module.db() as session:
         session.add(IngestRun(counts=counts, data_date=rows["data_date"], by=by))
         await session.commit()
