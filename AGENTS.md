@@ -1,6 +1,93 @@
-# hack4health
+# Wasel (hack4health)
 
-Modular AI agent reached through chat clients. Each capability is a separate module service; suppliers act on them from one admin panel.
+Wasel (واصل) is an AI agent on WhatsApp for Lebanon's Ministry of Public Health (MoPH). It answers any question from what the ministry publishes. When the answer is "you need to apply", it does the paperwork with the patient, sends it to the right desk at the ministry, and tells the patient when it moves. Think of it as the ministry's معقّب, the person who runs your paperwork through a ministry for you.
+
+- Tagline: **"Ask it anything. When there's something to do, it does it."**
+- Lebanese: **"اسأل… وهو بيخلّصلك المعاملة."**
+- **Current focus: information access.** The agent must answer ministry questions correctly before anything else gets built on top.
+
+## The hackathon
+
+**Hack for Health Lebanon**, organised by the AUB Department of Computer Science and Faculty of Arts and Sciences. It runs October 10–11, 2026 in West Hall, AUB. Site: https://sites.aub.edu.lb/hack4health/ (the content is in an iframe to https://gregarious-taffy-e0e823.netlify.app/). Contact: Prof. Rida Assaf, ra278@aub.edu.lb, hackathon@aub.edu.lb.
+
+- **Deadline: Sunday Oct 11, 14:00 sharp.** Upload the code and the presentation to OneDrive and submit both links through the site's form. Team demos follow. Shortlisted teams present to the judges at 16:00, and awards are at 17:00.
+- **Demo length:** 3 minutes for the jury, 10 minutes on stage. The organisers want "build & demo, not slides" and ask for something that runs.
+- **Challenge area:** Area 01, *Health information & access*: procedures and steps, eligibility and coverage, medications, services, referrals, costs, where to seek care. The "what people are asking" panel also touches Area 02 (complaints and feedback patterns). The other areas are Area 03 (displaced communities) and Area 04 (system readiness: shortages, inventory, capacity).
+- **Judges:**
+  - Prof. Rida Assaf (AUB Computer Science)
+  - H.E. Dr. Rakan Nassereddine, **Minister of Public Health**
+  - Ali Houjeij (Managing Director & Partner, BCG)
+
+  The minister is on the panel, so pitch Wasel as a tool the ministry could adopt.
+- **Policy hook:** the MoPH & UNICEF National Digital Health Transformation Strategy 2025–2030. It names AI-assisted decision-making, e-health and connected data as pillars. It also names the problems Wasel targets: records in silos, and information people can't reach when they need it.
+- **Prizes:** USD 500, mentorship, and a possible path to a pilot.
+
+Judging criteria and what each one means for this repo:
+
+| Criterion | What they check | For us |
+|---|---|---|
+| Solution fit and impact | A real gap in Lebanon today; would it make sense if the ministry picked it up on Monday? | Ground everything in real ministry data and real procedures |
+| Technical readiness | "We open it, press the buttons", a working system, not a mock-up | A demo that works end to end beats more features. Don't leave half-built paths in the demo |
+| User experience | Usable without explanation, for low digital confidence, on real devices and connections | WhatsApp, short plain replies, Arabic / English / Arabizi, voice notes |
+| Privacy and security | What is collected, who sees it, where a human stays in the loop | Admin panel never sees chats; signed tokens; ministry staff decide every request; the agent never diagnoses |
+| Demo and presentation | A room that doesn't know the project gets it fast | One story, below |
+
+## Product
+
+**The gap: "six services, six doors."** The ministry's own pages send patients through a different channel for each service:
+
+| Service | How you get it today |
+|---|---|
+| A covered operation | Call the number on the controller doctor's office door |
+| Cancer or MS medicine | Your doctor files on AMAN, you wait for an SMS, then check with the pharmacy monthly |
+| Haemophilia or transplant medicine | Send documents by WhatsApp to 81/348838 |
+| Humira | Go in person to the ministry's 4th floor |
+| IVIG | Hand in a paper form at the Bir Hassan office |
+| Complaints | Call 1214 or 1787 |
+
+A Q&A bot fixes half of this: the information gets easy to find, but every request still goes through one person. Wasel gives the patient one door and the ministry one inbox. Positioning against the other team: they built the ministry's encyclopedia; we built its معقّب.
+
+Three layers, one engine:
+
+1. **Knows.** One knowledge base from the ministry's public data: hospitals, primary care centres, medicine lists and prices, procedures, circulars and coverage announcements. Every answer cites its source.
+2. **Does.** A catalog of ministry services. Each entry lists who qualifies, the documents needed, the official form, the responsible desk and the deadline. One engine runs every service: it collects photos of the papers, catches what's missing, fills in the form and submits it with a request number. **Adding a service means adding an entry, not writing code.**
+3. **Follows up.** The patient gets a message on every change and can ask "where's my request?" at any time. A request whose desk misses its deadline moves up a level on its own.
+
+Ministry side:
+
+- One inbox where requests arrive complete, with Approve / Ask for more / Decline.
+- A "what people are asking" panel that surfaces confusion and rumours early. In July 2026 the ministry had to deny fake news about what it covers.
+
+Answering rules (the product bar):
+
+- **Accuracy beats coverage.** State only what a tool result says, with the official link and date. When the data doesn't cover a question, say so plainly and point to the right contact (the service's office, or 1214 / 1787). Never guess.
+- If eligibility depends on something unknown (nationality, NSSF or army cover, displaced or not, which disease), ask one short question first.
+- Reply in the user's language. Never diagnose; for emergencies, point to the Red Cross on 140.
+
+Out of scope: medicine-arrival alerts, and actions for NSSF or private insurance.
+
+**Demo story:**
+
+1. A voice note: "My dad needs a hernia operation, does the ministry cover it?" Wasel answers with the source and offers to submit the request.
+2. The family sends photos. Wasel catches that the ID is missing, fills in the form and gives request number W-1042.
+3. On the laptop, someone presses Approve in the admin panel, and the judge's phone buzzes.
+4. A judge asks any question of their own, to show the full knowledge base.
+
+### Status (Oct 11, 2026)
+
+| Layer | Where | State |
+|---|---|---|
+| Knows | `modules/moph/` (data from the `sandpit/` crawl of moph.gov.lb) | Built. Tools for services, site/news/document search (Pinecone, multilingual), drugs, facilities, hotlines, unanswered questions. Needs `OPENAI_API_KEY` + `PINECONE_API_KEY` and a data load (`modules/moph/README.md`) |
+| Agent | `core/agent.py`, `core/runs.py` | Built: LangGraph loop, queue, supplier updates. The prompt still calls itself "the hack4health assistant" |
+| Does | a module for the service catalog | Not built |
+| Follows up | core tickets, `notify`, `resolve_ticket` | Built in the core. Deadline escalation not built |
+| Ministry inbox | admin panel + module pages | Ticket list built. Approve / Ask for more / Decline belong in the Does module's page |
+| What people are asking | moph admin page: Unanswered, Searches | First version built |
+| Clients | `clients/` | Web chat only. WhatsApp (the demo client) not built. Voice notes and photos not handled anywhere yet |
+
+## Architecture
+
+Modular AI agent reached through chat clients. Each capability is a separate module service; suppliers (here, ministry desks) act on them from one admin panel.
 
 ## Components
 
@@ -172,9 +259,10 @@ admin/               # admin panel shell (Vite + React + Tailwind)
 sdk/python/h4h/      # module SDK: Module, User, Admin, CoreClient, ToolError
 sdk/ui/              # @h4h/module-ui: ShellProvider, useApi, useAdmin, postMessage protocol
 modules/noop/        # example module and the template for `h4h module new`
-clients/web/         # web chat client: the page, debounce, reply callback (app/main.py, app/static/index.html)
   app/               # module.py, tools.py, models.py, api.py, main.py
   ui/                # its admin page
+modules/moph/        # Ministry Info: the "Knows" layer (see its README)
+clients/web/         # web chat client: the page, debounce, reply callback (app/main.py, app/static/index.html)
 migrations/          # Alembic, core tables only
 modules.toml         # module registry
 clients.toml         # chat client registry
