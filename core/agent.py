@@ -29,7 +29,7 @@ from sqlalchemy import func, select
 from core import db, tools
 from core.models import Ticket, TicketStatus
 
-MODEL = os.environ.get("AGENT_MODEL", "openai:gpt-5.6-luna")  # any init_chat_model "provider:model"
+MODEL = os.environ.get("AGENT_MODEL", "openai:gpt-5.6-terra")  # any init_chat_model "provider:model"
 MODEL_TIMEOUT = 120  # seconds per model call
 TOOL_TIMEOUT = 60  # seconds per tool call
 MAX_STEPS = 25  # model and tool steps in one turn
@@ -180,6 +180,7 @@ async def call_tools(state: State, runtime: Runtime[Context]) -> dict:
 
 
 _ARABIC = re.compile(r"[\u0600-\u06ff]")
+_ARABIC_WORDS = re.compile(r"[\u0600-\u06ff]+(?:\s+[\u0600-\u06ff]+)*")
 _ARABIZI = re.compile(
     r"[a-z][2356789][a-z]|\b[2357][a-z]|[a-z][2357]\b|"
     r"\b(shou|shu|kif|kifak|kifik|baddi|badde|bade|bado|eza|iza|3am|ma3|3and|3ande|ya3ne|adde|"
@@ -189,9 +190,9 @@ _ARABIZI = re.compile(
 
 def _script_hint(messages: list[AnyMessage]) -> str | None:
     """A last-moment reminder of the user's script: tool results in Arabic pull the model away from Arabizi."""
-    last = next((m for m in reversed(messages) if isinstance(m, HumanMessage) and not m.text.startswith("[photo")), None)
+    last = next((m for m in reversed(messages) if isinstance(m, HumanMessage) and not m.text.startswith(("[photo", "[supplier"))), None)
     text = last.text.lower() if last else ""
-    if not text or text.startswith("[supplier") or _ARABIC.search(text) or not _ARABIZI.search(text):
+    if not text or _ARABIC.search(text) or not _ARABIZI.search(text):
         return None
     return (
         "The user writes in Arabizi (Lebanese Arabic in Latin letters). Write your whole reply in Arabizi "
@@ -202,10 +203,11 @@ def _script_hint(messages: list[AnyMessage]) -> str | None:
 
 async def _rewrite_in_arabizi(reply: AIMessage) -> AIMessage:
     """The model still slipped into Arabic script: have it rewrite the answer, keeping everything else."""
+    words = ", ".join(dict.fromkeys(_ARABIC_WORDS.findall(reply.text)))
     rewrite = await get_model().ainvoke([
         SystemMessage("Rewrite the message fully in Lebanese Arabizi (Latin letters and numbers, e.g. 3, 7, 2). "
-                      "Transliterate every word in Arabic script. Keep the meaning, numbers, links and list layout "
-                      "exactly. Output only the rewritten message."),
+                      f"These words are still in Arabic script; write each in Arabizi: {words}. Keep the meaning, "
+                      "numbers, links and list layout exactly. Output only the rewritten message."),
         HumanMessage(reply.text),
     ])
     return AIMessage(rewrite.text, id=reply.id)
