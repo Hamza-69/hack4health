@@ -313,6 +313,7 @@ modules/bills/       # Hospital Bills: check a bill against the ministry's rules
 clients/web/         # public site + web chat: landing.html, chat.html, widget.js (embed), ministry.html (demo), logo.svg; debounce and reply callback in app/main.py
 clients/wa/          # WhatsApp client (Node, Baileys): linking, debounce, media, replies (main.js)
 migrations/          # Alembic, core tables only
+deploy/              # Fly (one machine: Dockerfile, fly.toml, start.sh, Caddyfile) with Postgres on Neon; steps in deploy/README.md
 modules.toml         # module registry
 clients.toml         # chat client registry
 sandpit/             # not part of the product: moph.gov.lb crawler and data, eval/ (test questions, demo rehearsal), demo/ (reset, document specimens)

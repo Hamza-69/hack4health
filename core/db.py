@@ -1,14 +1,12 @@
-import os
-
+from h4h.db import database_url
 from sqlalchemy import MetaData
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
-DATABASE_URL = os.environ.get(
-    "DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/hack4health"
-)
+DATABASE_URL = database_url()
 
-engine = create_async_engine(DATABASE_URL)
+# Pre-ping: Neon drops connections when its compute restarts or scales to zero.
+engine = create_async_engine(DATABASE_URL, pool_pre_ping=True)
 Session = async_sessionmaker(engine, expire_on_commit=False)
 
 

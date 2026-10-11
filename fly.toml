@@ -1,10 +1,14 @@
 # One machine runs everything (deploy/start.sh). Keep it at one: the WhatsApp session can live in
-# one place only, and it sits on the volume.
+# one place only, and it sits on the volume. Postgres is on Neon: DATABASE_URL is a Fly secret.
+# Steps in deploy/README.md.
 app = "wasel"
-primary_region = "iad"  # next to OpenAI and the Pinecone index (us-east-1), which every turn calls
+primary_region = "iad"  # next to OpenAI, the Pinecone index and the Neon database (all AWS us-east-1), which every turn calls
 
 [build.args]
-  VITE_SHELL_ORIGIN = "https://wasel.fly.dev"
+  VITE_SHELL_ORIGIN = "https://wasel.fly.dev"  # https://<app>.fly.dev: the admin panel's origin, checked by module UIs
+
+[deploy]
+  release_command = ".venv/bin/alembic upgrade head"  # core tables, once per deploy; modules create theirs on startup
 
 [[mounts]]
   source = "wasel_data"

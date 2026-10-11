@@ -29,6 +29,8 @@ uv run h4h dev                       # core, admin panel, every module and the w
 
 Talk to the agent at http://localhost:9000, the web chat client. Each browser is its own user; **New chat** starts over as a new one. It takes voice notes (the mic button) and photos or PDFs (the paperclip). The admin panel is at http://localhost:5173.
 
+To deploy on Fly with Postgres on Neon, follow [deploy/README.md](deploy/README.md).
+
 For WhatsApp, open http://localhost:9001 and scan the QR code from WhatsApp › Settings › Linked devices on the phone with the bot's number (a spare one: it answers every private chat). Then message that number from any other phone. See [AGENTS.md](AGENTS.md#whatsapp).
 
 To watch a ticket flow through without the model, make the agent's tool call yourself:

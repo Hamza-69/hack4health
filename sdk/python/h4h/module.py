@@ -20,10 +20,9 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.orm import DeclarativeBase
 
 from h4h.core_client import CoreClient, CoreError
+from h4h.db import database_url
 from h4h.tokens import USER_TOKEN_META_KEY, TokenType, verify
 from h4h.users import Admin, User
-
-DEFAULT_DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/hack4health"
 
 _bearer = HTTPBearer()
 
@@ -53,7 +52,8 @@ class Module:
             metadata = MetaData(schema=name)
 
         self.Base = Base
-        self.engine = create_async_engine(os.environ.get("DATABASE_URL", DEFAULT_DATABASE_URL))
+        # Pre-ping: Neon drops connections when its compute restarts or scales to zero.
+        self.engine = create_async_engine(database_url(), pool_pre_ping=True)
         self.db = async_sessionmaker(self.engine, expire_on_commit=False)
 
         self.core = CoreClient(self.core_url, os.environ.get("MODULE_TOKEN"))
