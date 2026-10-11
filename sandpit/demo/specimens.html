@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wasel demo specimens</title>
+<style>
+  :root { --ink: #1f2933; --muted: #52606d; --line: #cbd2d9; --mark: rgba(200, 30, 30, 0.13); }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #e4e7eb; color: var(--ink); font-family: "Noto Naskh Arabic", "Geeza Pro", "Times New Roman", serif; }
+  .note { font-family: system-ui, sans-serif; direction: ltr; max-width: 760px; margin: 24px auto; padding: 0 16px; font-size: 14px; color: var(--muted); }
+  .page { position: relative; width: 148mm; min-height: 200mm; margin: 24px auto; padding: 14mm 12mm; background: #fff; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,.15); page-break-after: always; }
+  .page::after { content: "نموذج للعرض فقط · DEMO SPECIMEN"; position: absolute; top: 45%; left: -10%; width: 120%; text-align: center; transform: rotate(-28deg); font: 700 30px system-ui, sans-serif; color: var(--mark); letter-spacing: 2px; pointer-events: none; }
+  .banner { border: 2px solid #c81e1e; color: #c81e1e; font: 600 11px system-ui, sans-serif; text-align: center; padding: 4px; margin-bottom: 10mm; direction: ltr; }
+  h1 { font-size: 20px; text-align: center; margin: 0 0 4px; }
+  h2 { font-size: 14px; text-align: center; margin: 0 0 8mm; color: var(--muted); font-weight: normal; }
+  .head { display: flex; justify-content: space-between; font-size: 13px; border-bottom: 1px solid var(--line); padding-bottom: 6px; margin-bottom: 8mm; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  td { border: 1px solid var(--line); padding: 6px 8px; vertical-align: top; }
+  td:first-child { width: 38%; color: var(--muted); }
+  p { font-size: 14px; line-height: 1.9; }
+  .sign { display: flex; justify-content: space-between; margin-top: 14mm; font-size: 13px; }
+  .stamp { border: 2px dashed #2f6fb3; color: #2f6fb3; border-radius: 50%; width: 34mm; height: 34mm; display: flex; align-items: center; justify-content: center; text-align: center; font: 600 10px system-ui, sans-serif; transform: rotate(-8deg); }
+  .photo { width: 28mm; height: 34mm; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--muted); float: left; margin: 0 0 4mm 4mm; }
+  @media print { body { background: #fff; } .note { display: none; } .page { box-shadow: none; margin: 0 auto; } }
+</style>
+</head>
+<body>
+<div class="note">
+  Demo props for step 2 of the demo: print these three pages, or show them on a second screen, and photograph them with the demo phone.
+  Ali Haddad, the doctor and the reference numbers are fictional; every page is marked as a demo specimen.
+  For the "missing document" moment, send the medical report and the NSSF statement first, then the civil registry extract.
+</div>
+
+<section class="page">
+  <div class="banner">DEMO SPECIMEN · FICTIONAL PATIENT · NOT AN OFFICIAL DOCUMENT</div>
+  <div class="head"><span>مستشفى رفيق الحريري الجامعي</span><span>التاريخ: 2026/10/09</span></div>
+  <h1>تقرير طبي مفصل</h1>
+  <h2>على نفقة وزارة الصحة العامة</h2>
+  <table>
+    <tr><td>اسم المريض</td><td>علي حداد</td></tr>
+    <tr><td>تاريخ الولادة</td><td>1961/03/14</td></tr>
+    <tr><td>التشخيص</td><td>فتق إربي أيمن (Right inguinal hernia)</td></tr>
+    <tr><td>الإجراء المطلوب</td><td>عملية إصلاح فتق إربي مع شبكة</td></tr>
+    <tr><td>تاريخ الدخول المتوقع</td><td>2026/10/14</td></tr>
+    <tr><td>مدة الإقامة المتوقعة</td><td>يومان</td></tr>
+  </table>
+  <p>يعاني المريض من فتق إربي أيمن مؤلم منذ ستة أشهر، ويحتاج إلى عملية جراحية لإصلاحه. يُرجى إجراء العملية على نفقة وزارة الصحة العامة.</p>
+  <div class="sign">
+    <div>د. كريم سعد · جراحة عامة<br>رقم الانتساب إلى النقابة: 0000 (نموذج)<br>التوقيع: ..................</div>
+    <div class="stamp">ختم المستشفى<br>(نموذج)</div>
+  </div>
+</section>
+
+<section class="page">
+  <div class="banner">DEMO SPECIMEN · FICTIONAL PATIENT · NOT AN OFFICIAL DOCUMENT</div>
+  <div class="head"><span>الصندوق الوطني للضمان الاجتماعي</span><span>التاريخ: 2026/10/05</span></div>
+  <h1>إفادة</h1>
+  <h2>عدم استفادة من تقديمات الضمان الصحي</h2>
+  <p>يفيد الصندوق الوطني للضمان الاجتماعي أن السيد <b>علي حداد</b>، المولود سنة 1961، غير منتسب إلى الصندوق ولا يستفيد من تقديمات فرع ضمان المرض والأمومة بتاريخ هذه الإفادة.</p>
+  <p>أعطيت هذه الإفادة بناءً على طلبه لتقديمها إلى وزارة الصحة العامة.</p>
+  <table>
+    <tr><td>رقم المرجع</td><td>DEMO-0000</td></tr>
+    <tr><td>صالحة لغاية</td><td>شهرين من تاريخه</td></tr>
+  </table>
+  <div class="sign">
+    <div>رئيس القسم<br>التوقيع: ..................</div>
+    <div class="stamp">ختم الصندوق<br>(نموذج)</div>
+  </div>
+</section>
+
+<section class="page">
+  <div class="banner">DEMO SPECIMEN · FICTIONAL PERSON · NOT AN OFFICIAL DOCUMENT</div>
+  <div class="head"><span>دائرة النفوس</span><span>التاريخ: 2026/10/08</span></div>
+  <h1>إخراج قيد فردي</h1>
+  <h2>(نموذج للعرض)</h2>
+  <div class="photo">صورة<br>صاحب العلاقة</div>
+  <table>
+    <tr><td>الاسم</td><td>علي</td></tr>
+    <tr><td>الشهرة</td><td>حداد</td></tr>
+    <tr><td>اسم الأب</td><td>محمود</td></tr>
+    <tr><td>اسم الأم وشهرتها</td><td>سعاد خليل</td></tr>
+    <tr><td>محل وتاريخ الولادة</td><td>بيروت 1961/03/14</td></tr>
+    <tr><td>رقم السجل</td><td>000 (نموذج)</td></tr>
+    <tr><td>الجنسية</td><td>لبنانية</td></tr>
+  </table>
+  <div class="sign">
+    <div>مأمور النفوس<br>التوقيع: ..................</div>
+    <div class="stamp">ختم الدائرة<br>(نموذج)</div>
+  </div>
+</section>
+</body>
+</html>
