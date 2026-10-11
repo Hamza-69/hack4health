@@ -157,7 +157,7 @@ Clients turn what isn't text into text before it reaches the agent, through the 
 | voice note | `[voice note] <transcript>` (OpenAI `TRANSCRIBE_MODEL`, default `gpt-4o-transcribe`) | no |
 | photo (JPEG, PNG, WebP) | `[photo <link>] <what it is> \| <field>: <value> \| ...` (`VISION_MODEL`, default `gpt-6-luna` with reasoning effort `VISION_EFFORT=none`, about 3 s) | yes |
 | PDF | `[document <link>] <what it is> \| <field>: <value> \| ...` | yes |
-| location | `[location: <place or coordinates>]` (WhatsApp only, made by the client) | no |
+| location | `[location: <place> (<lat>, <lon>)]`, or only the coordinates (WhatsApp only, made by the client) | no |
 | video, other files, contacts | `[... can't be opened ...]`, so the agent asks for another way | no |
 
 - Links are `CORE_PUBLIC_URL/media/<random name>` (default `http://localhost:8000`). The name is the only key, so a module (the ministry's inbox) can show the photo by its link, and nobody can list or guess the files.
