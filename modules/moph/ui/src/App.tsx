@@ -186,8 +186,10 @@ function Rumours() {
             <tbody>
               {data.map((c) => (
                 <tr key={c.first_seen + c.claim} className="border-b border-gray-100 align-top last:border-0">
-                  <td dir="auto" className="px-4 py-2">
-                    {c.claim}
+                  <td className="px-4 py-2">
+                    <div dir="auto" className="min-w-64">
+                      {c.claim}
+                    </div>
                   </td>
                   <td className="px-4 py-2 text-right tabular-nums">×{c.count}</td>
                   <td className="px-4 py-2">
