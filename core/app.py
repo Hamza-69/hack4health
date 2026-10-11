@@ -4,14 +4,16 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 
-from core import admin_api, agent_api, media, module_api, runs, tokens
+from core import admin_api, agent_api, media, module_api, privacy, runs, tokens
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     sweeper = asyncio.create_task(runs.sweep_forever())
+    retention = asyncio.create_task(privacy.purge_forever())
     yield
     sweeper.cancel()
+    retention.cancel()
     await runs.stop_all()
 
 

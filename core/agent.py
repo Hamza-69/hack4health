@@ -61,6 +61,11 @@ or tables; a short numbered list for steps or documents is fine. Links as bare U
 
 Never mention tickets, ticket ids, tools or "resolving" to the user: those are internal.
 
+Privacy. Ministry staff never read this chat; a desk only sees a request the user confirms. If the user \
+asks to delete their data or this chat, say in one line what goes (this conversation and earlier ones \
+with you) and what stays (requests already submitted, which the ministry keeps as its records), and ask \
+them to confirm. On a clear yes, call delete_my_data, then tell them it is done.
+
 Each module below gives you tools and says how to use them. Only state what a tool result in this \
 chat says; never fill gaps from general knowledge. If nothing here fits the request, say what you \
 can help with.
@@ -82,8 +87,8 @@ optional documents such as proof of kinship, are for the ministry desk to check 
 request, so never hold a request back over them. When check_request says nothing is missing, the \
 request is complete. Never diagnose or judge \
 anything medical from a photo. When a tool takes a document, pass its link.
-- "[location: <place or coordinates>]": the user shared a location. If it is only coordinates, ask \
-which town or area they are in.
+- "[location: <place or coordinates>]": the user shared a location. When a tool takes coordinates \
+(find_facilities), pass them; otherwise, if it is only coordinates, ask which town or area they are in.
 - "[... can't be opened]" or "[... could not be read]": say what you can read (text, voice notes, \
 photos, PDFs) and ask them to send it that way.
 """
@@ -100,6 +105,7 @@ Lebanon's Ministry of Public Health.
 3. One line on how: type or send a voice note, in Arabic, English or Arabizi, and send photos of \
 papers when you ask for them.
 4. One line: you never give a medical diagnosis; in an emergency, call the Red Cross on 140.
+5. One line: the chat is private; ministry staff never read it, and they can ask you any time to delete it.
 If their message is only a greeting, or asks who you are or what you can do, the welcome is the whole \
 reply: end it by asking what they need. If it already asks for something, shorten the welcome to the \
 greeting and who you are, in one sentence, then handle the request as usual (asking a short question \
@@ -112,6 +118,16 @@ ABILITIES = {  # module → what the welcome says it lets Wasel do
     "operation at the ministry's expense, some medicines, complaints), and tell them here when it moves",
     "bills": "check a hospital bill against what the ministry pays, and report a hospital that charges "
     "a patient the ministry covers",
+}
+
+DELETE_MY_DATA = {
+    "type": "function",
+    "function": {
+        "name": "delete_my_data",
+        "description": "Erase the user's conversations with you (this chat and earlier ones) once your "
+        "reply is sent. Requests already submitted stay with the ministry. Only after the user confirmed.",
+        "parameters": {"type": "object", "properties": {}},
+    },
 }
 
 RESOLVE_TICKET = {
@@ -149,6 +165,7 @@ class Context:
     tools: list[dict]  # OpenAI function schemas
     sync: Callable[[list[AnyMessage]], Awaitable[list[AnyMessage]]]  # save the chat, return queued messages
     send: Callable[[str], Awaitable[None]]  # deliver text to the user
+    erase: bool = False  # set by delete_my_data: the runner erases the chat once the turn is over
 
 
 @cache
@@ -181,7 +198,7 @@ async def context(
         )
         first = await _first_contact(session, user_id)
         system = _system_prompt(modules, list(open_tickets), list(archived), first_contact=first)
-    schemas = [RESOLVE_TICKET, *(_schema(tool) for module in modules for tool in module.tools)]
+    schemas = [RESOLVE_TICKET, DELETE_MY_DATA, *(_schema(tool) for module in modules for tool in module.tools)]
     return Context(user_id, system, schemas, sync, send)
 
 
@@ -238,7 +255,7 @@ async def call_model(state: State, runtime: Runtime[Context]) -> dict:
 
 async def call_tools(state: State, runtime: Runtime[Context]) -> dict:
     calls = state["messages"][-1].tool_calls
-    return {"messages": await asyncio.gather(*(_call_tool(runtime.context.user_id, c) for c in calls))}
+    return {"messages": await asyncio.gather(*(_call_tool(runtime.context, c) for c in calls))}
 
 
 _ARABIC = re.compile(r"[\u0600-\u06ff]")
@@ -360,14 +377,17 @@ def _after_model(state: State) -> str:
     return "tools" if state["messages"][-1].tool_calls else END
 
 
-async def _call_tool(user_id: uuid.UUID, call: ToolCall) -> ToolMessage:
+async def _call_tool(ctx: Context, call: ToolCall) -> ToolMessage:
     """Run one tool call. Any failure goes back to the model as the tool's result."""
     try:
         async with asyncio.timeout(TOOL_TIMEOUT):
             if call["name"] == "resolve_ticket":
-                content = await resolve_ticket(user_id, **call["args"])
+                content = await resolve_ticket(ctx.user_id, **call["args"])
+            elif call["name"] == "delete_my_data":
+                ctx.erase = True
+                content = "The conversations will be erased as soon as your reply is sent."
             else:
-                content = _result_text(await tools.call_tool(user_id, call["name"], call["args"]))
+                content = _result_text(await tools.call_tool(ctx.user_id, call["name"], call["args"]))
     except Exception as e:
         log.warning("tool %s failed: %r", call["name"], e)
         content = f"Error: {e or type(e).__name__}"

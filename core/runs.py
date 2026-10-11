@@ -20,7 +20,7 @@ from langchain_core.messages import AIMessage, AnyMessage, convert_to_messages, 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core import agent, db, tokens
+from core import agent, db, privacy, tokens
 from core.chat import archive_if_done, lock_user
 from core.models import User
 from core.registry import load_clients
@@ -106,6 +106,9 @@ class Run:
         while True:
             ctx = await agent.context(self.user_id, sync=self.save, send=self.send)
             messages = await agent.run_turn(messages, ctx)
+            if ctx.erase:  # the user asked to delete their data: the reply is out, now forget the chats
+                await privacy.erase_history(self.user_id)
+                messages = []
             queued = await self.save(messages, last=True)
             if not queued:
                 return

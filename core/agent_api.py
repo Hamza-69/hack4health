@@ -5,7 +5,7 @@ import re
 
 import openai
 from fastapi import APIRouter, HTTPException, UploadFile
-from sqlalchemy import exists, select
+from sqlalchemy import exists, func, select
 
 from core import media, runs
 from core.auth import DB, CurrentClient
@@ -34,7 +34,7 @@ async def post_messages(body: MessagesIn, client: CurrentClient, session: DB) ->
     except ValueError as e:
         raise HTTPException(422, str(e)) from e
     user = await lock_user(session, user_id_for(client.app, address))
-    user.app, user.address = client.app, address
+    user.app, user.address, user.last_active_at = client.app, address, func.now()
     messages = [{"role": "user", "content": _from_user(text)} for text in body.messages]
     if body.greeting and await _is_new(session, user):
         messages.insert(0, {"role": "assistant", "content": body.greeting})

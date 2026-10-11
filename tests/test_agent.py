@@ -1,5 +1,6 @@
 import json
 import uuid
+from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
@@ -10,7 +11,7 @@ from mcp_types import CallToolResult, TextContent
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from core import agent, db, runs, tokens, tools
+from core import agent, db, privacy, runs, tokens, tools
 from core.app import app
 from core.auth import get_session
 from core.chat import lock_user
@@ -234,6 +235,53 @@ async def test_a_client_greeting_opens_a_new_users_chat_only(client, session):
     user = await fresh(session, user_id)
     assert [(m["role"], m["content"]) for m in user.messages] == [("assistant", "Hi, I'm Wasel"), ("user", "hi")]
     assert user.queue == [{"role": "user", "content": "still there?"}]  # a run is active: no second greeting
+
+
+async def test_delete_my_data_erases_the_chats_once_the_reply_is_out(client, session, started_runs, sent, monkeypatch):
+    model = FakeModel(
+        AIMessage("", tool_calls=[{"id": "c1", "name": "delete_my_data", "args": {}}]),
+        AIMessage("Done: your conversations with Wasel are deleted."),
+    )
+    monkeypatch.setattr(agent, "get_model", lambda: model)
+    monkeypatch.setattr(tools, "list_modules", no_modules)
+    user_id = await post_user(client, "delete my data", "yes")
+    session.add(Archive(user_id=user_id, messages=[{"role": "user", "content": "an old chat"}]))
+    request = Ticket(user_id=user_id, kind="testmod", title="W-1042", status=TicketStatus.ARCHIVED,
+                     resolution="Approved", resolved_at=datetime.now(UTC))
+    session.add(request)
+    await session.commit()
+
+    [(_, since)] = started_runs
+    await runs.Run(user_id, since).go()
+
+    assert sent == ["Done: your conversations with Wasel are deleted."]
+    user = await fresh(session, user_id)
+    assert (user.messages, user.agent_running_since) == ([], None)
+    assert not await session.scalar(select(Archive).where(Archive.user_id == user_id))
+    await session.refresh(request)
+    assert (request.title, request.resolution) == ("W-1042", None)  # the request stays, the memory goes
+
+
+async def test_retention_deletes_idle_and_old_chats_but_not_open_requests(client, session):
+    idle = await post_user(client, "hi")
+    waiting = await post_user(client, "where is my request?", account="+96171000000")
+    recent = await post_user(client, "hello", account="+96171000001")
+    session.add(Ticket(user_id=waiting, kind="testmod", title="W-1043", status=TicketStatus.AWAITING_USER))
+    old = Archive(user_id=recent, messages=[{"role": "user", "content": "long ago"}])
+    session.add(old)
+    await session.commit()
+    later = datetime.now(UTC) + timedelta(days=privacy.CHAT_RETENTION_DAYS, hours=1)
+    for user_id in (idle, waiting, recent):
+        user = await lock_user(session, user_id)
+        user.agent_running_since = None
+        if user_id == recent:
+            user.last_active_at = later
+        await session.commit()
+
+    assert await privacy.purge(now=later) == (1, 1)
+    assert (await fresh(session, idle)).messages == []
+    assert (await fresh(session, waiting)).messages  # a request is still open
+    assert (await fresh(session, recent)).messages  # wrote recently
 
 
 async def test_replies_go_to_the_client_with_a_reply_token(monkeypatch):
