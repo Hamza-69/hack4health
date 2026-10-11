@@ -81,6 +81,36 @@ _AREA_ALIASES = {
 }
 AREA_ALIASES = {normalize(alias): area for area, aliases in _AREA_ALIASES.items() for alias in aliases}
 
+# Neighbourhoods and towns people name, by the caza the Facility Locator files them under. The
+# locator has no street addresses, so a neighbourhood narrows to its caza, and facilities named
+# after the neighbourhood come first.
+_NEIGHBOURHOODS = {
+    "Beirut": [
+        ("hamra", "الحمرا", "حمرا"), ("achrafieh", "ashrafieh", "الاشرفيه"), ("ras beirut", "راس بيروت"),
+        ("verdun", "فردان"), ("mar elias", "مار الياس"), ("mazraa", "المزرعه"), ("basta", "البسطه"),
+        ("gemmayzeh", "الجميزه"), ("mar mikhael", "مار مخايل"), ("badaro", "بدارو"), ("tariq el jdideh", "طريق الجديده"),
+        ("ain el mreisseh", "عين المريسه"), ("raouche", "الروشه"), ("manara", "المناره"), ("sassine", "ساسين"),
+        ("zarif", "الظريف"), ("ras el nabaa", "راس النبع"), ("tallet el khayat", "تله الخياط"),
+        ("karantina", "الكرنتينا"), ("geitawi", "الجعيتاوي"), ("msaytbeh", "المصيطبه"),
+    ],
+    "Baabda": [
+        ("hazmieh", "الحازميه"), ("hadath", "الحدث"), ("ghobeiry", "الغبيري"), ("chiyah", "الشياح"),
+        ("bir hassan", "بئر حسن"), ("jnah", "الجناح"), ("furn el chebbak", "فرن الشباك"), ("haret hreik", "حاره حريك"),
+    ],
+    "El Meten": [
+        ("dekwaneh", "الدكوانه"), ("sin el fil", "سن الفيل"), ("jdeideh", "الجديده"), ("antelias", "انطلياس"),
+        ("dbayeh", "ضبيه"), ("zalka", "الزلقا"), ("broummana", "برمانا"), ("bourj hammoud", "برج حمود"),
+        ("jal el dib", "جل الديب"),
+    ],
+    "Aley": [("choueifat", "الشويفات"), ("khaldeh", "خلده"), ("bchamoun", "بشامون")],
+    "Tripoli": [("mina", "الميناء"), ("abou samra", "ابي سمرا"), ("bab el tebbaneh", "باب التبانه")],
+}
+# spelling -> (caza, every spelling of that neighbourhood, for matching facility names)
+NEIGHBOURHOODS = {
+    normalize(n): (caza, [normalize(v).removeprefix("ال") for v in variants])
+    for caza, hoods in _NEIGHBOURHOODS.items() for variants in hoods for n in variants
+}
+
 STRONG_SIMILARITY = 0.45  # cosine similarity of a "strong" match with text-embedding-3-large
 RECENT_DAYS = 548  # site results from the last 18 months rank a little higher: rules change
 RECENT_BOOST = 1.1
@@ -301,6 +331,9 @@ class Catalog:
         if type:
             types = FACILITY_TYPES[type]
             rows = [f for f in rows if f["type"] in types]
+        neighbourhood, spellings = None, []
+        if area and (hood := NEIGHBOURHOODS.get(normalize(area).strip())):
+            neighbourhood, (area, spellings) = area.strip(), hood
         if area:
             areas = self.match_areas(area)
             if not areas:
@@ -310,7 +343,11 @@ class Catalog:
         if name:
             q = normalize(name)
             rows = [f for f in rows if q in normalize(f["name_en"]) or q in normalize(f["name_ar"])]
-        rows = sorted(rows, key=lambda f: (f["type"] != "Governmental Hospitals", f["name_ar"]))
+        def named_after(f) -> bool:
+            name = normalize(f["name_en"] + " " + f["name_ar"])
+            return any(v in name for v in spellings)
+
+        rows = sorted(rows, key=lambda f: (not named_after(f), f["type"] != "Governmental Hospitals", f["name_ar"]))
         result = {
             "total": len(rows),
             "facilities": [
@@ -326,6 +363,12 @@ class Catalog:
                 for f in rows[:limit]
             ],
         }
+        if neighbourhood and rows:
+            result["note"] = (
+                f"The Facility Locator has no street addresses: these are licensed facilities anywhere in {area}, "
+                f"not necessarily near {neighbourhood}. Any named after {neighbourhood} come first. Never call the "
+                f"others nearby or in {neighbourhood}; say they are in {area} and suggest calling to check where they are."
+            )
         if not rows:
             result["note"] = (
                 "Nothing matching in our copy of the ministry's Facility Locator. That list is incomplete "
