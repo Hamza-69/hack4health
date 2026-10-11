@@ -23,7 +23,7 @@ The answering rules live in the MCP server instructions (`app/module.py`). The a
 | `get_service` | one service by id |
 | `search_ministry_site` | site pages, news and the documents they link (laws, decisions, circulars, guidelines), with dates: programmes, announcements, what the ministry covers and for whom |
 | `lookup_drug` | public price, cheaper equivalents, free medicine lists |
-| `find_facilities` | hospitals, PHC centres, pharmacies... by type, area, name |
+| `find_facilities` | hospitals, PHC centres, pharmacies... by type, area, name, or a location the user shared (matched to its caza by `app/places.py`, no distances); each with a Google Maps link |
 | `get_contacts` | hotlines |
 | `report_unanswered` | logs a question we could not answer, for the admin page |
 | `report_claim` | logs a forwarded message or rumour the agent checked, with its verdict and source; near-duplicates share a key (`app/text.py`) |
@@ -45,6 +45,7 @@ Drug names are matched in Latin letters, with typo tolerance.
 ## Admin side
 
 - **Overview**: data counts, last load, reload button, search stats
+- **Insights**: questions per day for the last 7 days by kind, the share of searches answered, and the top 5 rumours. Counts only, never question text; any count under 5 shows as "fewer than 5"
 - **Rumours**: claims people asked Wasel to check, with how often, the verdict and the official source
 - **Unanswered**: questions the agent could not answer
 - **Searches**: what the agent searched for, and which searches found nothing

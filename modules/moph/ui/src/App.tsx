@@ -1,11 +1,12 @@
 import { useApi } from "@h4h/module-ui";
 import { useCallback, useEffect, useState } from "react";
 
-type Tab = "overview" | "asking" | "rumours" | "gaps";
+type Tab = "overview" | "asking" | "insights" | "rumours" | "gaps";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "overview", label: "Overview" },
   { id: "asking", label: "What people ask" },
+  { id: "insights", label: "Insights" },
   { id: "rumours", label: "Rumours" },
   { id: "gaps", label: "Unanswered" },
 ];
@@ -29,6 +30,7 @@ export default function App() {
         ))}
       </nav>
       {tab === "overview" && <Overview />}
+      {tab === "insights" && <Weekly />}
       {tab === "rumours" && <Rumours />}
       {tab === "gaps" && <Gaps />}
       {tab === "asking" && (
@@ -404,5 +406,111 @@ function AskedList({ title, items, empty, warn }: { title: string; items: Asked[
         ))}
       </ol>
     </section>
+  );
+}
+
+// Insights: counts only, never what was asked
+
+type Count = number | null; // null: fewer than 5, hidden by the server
+type WeeklyData = {
+  days: string[];
+  kinds: { kind: string; per_day: Count[]; total: Count }[];
+  searches: { answered: Count; unanswered: Count; answered_share: number | null };
+  rumours: { key: string; count: Count; verdict: Verdict }[];
+};
+
+const FEWER = "fewer than 5";
+const count = (n: Count) => (n === null ? FEWER : n.toLocaleString());
+const weekday = (iso: string) =>
+  new Date(`${iso}T00:00`).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+
+function CountCell({ n, bold }: { n: Count; bold?: boolean }) {
+  return (
+    <td className={`px-4 py-2 text-right whitespace-nowrap tabular-nums ${bold ? "font-medium" : ""}`}>
+      {n === null ? <span className="text-xs font-normal text-gray-400">{FEWER}</span> : n.toLocaleString()}
+    </td>
+  );
+}
+
+function Weekly() {
+  const { data, error } = useLoad<WeeklyData>("/insights/weekly");
+  if (!data) return <ErrorText error={error} />;
+  const { searches } = data;
+  return (
+    <div className="space-y-6">
+      <p className="text-sm text-gray-500">
+        Questions people asked Wasel in the last 7 days, as counts only: no question text and no user details. Any
+        count under 5 shows as “{FEWER}”, so no one person's question can be picked out.
+      </p>
+      <div className="grid grid-cols-3 gap-3">
+        <Stat
+          label="Searches answered from ministry data"
+          value={searches.answered_share === null ? FEWER : `${Math.round(searches.answered_share * 100)}%`}
+        />
+        <Stat label="Searches with results" value={count(searches.answered)} />
+        <Stat label="Searches with no result" value={count(searches.unanswered)} />
+      </div>
+      <section>
+        <h2 className="mb-2 font-medium">Questions per day</h2>
+        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-gray-200 text-gray-500">
+              <tr>
+                <th className="px-4 py-2 font-medium">Kind</th>
+                {data.days.map((d) => (
+                  <th key={d} className="px-4 py-2 text-right font-medium whitespace-nowrap">
+                    {weekday(d)}
+                  </th>
+                ))}
+                <th className="px-4 py-2 text-right font-medium">7 days</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.kinds.map((k) => (
+                <tr key={k.kind} className="border-b border-gray-100 last:border-0">
+                  <td className="px-4 py-2 whitespace-nowrap">{k.kind}</td>
+                  {k.per_day.map((n, i) => (
+                    <CountCell key={data.days[i]} n={n} />
+                  ))}
+                  <CountCell n={k.total} bold />
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section>
+        <h2 className="mb-2 font-medium">Top rumours</h2>
+        {data.rumours.length === 0 && <p className="text-sm text-gray-500">No rumours checked in the last 7 days.</p>}
+        {data.rumours.length > 0 && (
+          <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-gray-200 text-gray-500">
+                <tr>
+                  <th className="px-4 py-2 font-medium">Rumour</th>
+                  <th className="px-4 py-2 text-right font-medium">Count</th>
+                  <th className="px-4 py-2 font-medium">Verdict</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.rumours.map((r) => (
+                  <tr key={r.key} className="border-b border-gray-100 last:border-0">
+                    <td dir="auto" className="px-4 py-2">
+                      {r.key}
+                    </td>
+                    <CountCell n={r.count} />
+                    <td className="px-4 py-2">
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap ring-1 ring-inset ${VERDICT[r.verdict].className}`}>
+                        {VERDICT[r.verdict].label}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </div>
   );
 }

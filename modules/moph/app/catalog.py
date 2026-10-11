@@ -9,14 +9,17 @@ can cite and date what it says.
 """
 
 import asyncio
+import re
 from collections import defaultdict
 from datetime import date, timedelta
 from typing import Literal
+from urllib.parse import urlencode
 
 from rapidfuzz import fuzz, process
 from sqlalchemy import select
 
 from app import search_index
+from app.places import caza_at
 from app.text import is_arabic, normalize
 
 FacilityType = Literal[
@@ -129,6 +132,17 @@ def _lines(value) -> list[str]:
 
 def _price(value: float | None) -> str | None:
     return f"{value:,.0f} LBP" if value else None
+
+
+# Where an address turns to plot number, owner or PO box: of no use to a map search.
+_ADDRESS_TAIL = re.compile(r"(?<!\w)(?:عقار|ملك|ص\.\s?ب|p\.?\s?o\.?\s?box)(?!\w).*", re.IGNORECASE | re.DOTALL)
+
+
+def _maps_url(name: str, f: dict) -> str:
+    """A Google Maps search for the facility: the data has no coordinates."""
+    address = _ADDRESS_TAIL.sub("", f["address"]).strip(" -،,/:")
+    query = ", ".join(v for v in (name, address, f["caza_en"], "Lebanon") if v)
+    return "https://www.google.com/maps/search/?" + urlencode({"api": 1, "query": query})
 
 
 class Catalog:
@@ -325,12 +339,21 @@ class Catalog:
         return found
 
     def find_facilities(
-        self, type: FacilityType | None = None, area: str | None = None, name: str | None = None, limit: int = 10
+        self, type: FacilityType | None = None, area: str | None = None, name: str | None = None, limit: int = 10,
+        lat: float | None = None, lon: float | None = None,
     ) -> dict:
         rows = self.facilities
         if type:
             types = FACILITY_TYPES[type]
             rows = [f for f in rows if f["type"] in types]
+        located = None
+        if lat is not None and lon is not None and not area:
+            located = caza_at(lat, lon)
+            if located is None:
+                return {"total": 0, "facilities": [], "note": (
+                    "This location is not in Lebanon (or latitude and longitude are swapped). "
+                    "Ask which town or area the user is in.")}
+            rows = [f for f in rows if f["caza_en"] == located.name]
         neighbourhood, spellings = None, []
         if area and (hood := NEIGHBOURHOODS.get(normalize(area).strip())):
             neighbourhood, (area, spellings) = area.strip(), hood
@@ -350,22 +373,29 @@ class Catalog:
 
         near = [f for f in rows if in_neighbourhood(f)] if neighbourhood else []
         rows = sorted(near or rows, key=lambda f: (f["type"] != "Governmental Hospitals", f["name_ar"]))
-        result = {
-            "total": len(rows),
-            "facilities": [
-                {k: v for k, v in {
-                    "name": f["name_ar"] if is_arabic(f["name_en"]) or not f["name_en"] else f["name_en"],
-                    "name_ar": f["name_ar"],
-                    "type": f["type"],
-                    "governorate": f["governorate"],
-                    "caza": f["caza_en"],
-                    "address": f["address"],
-                    "phone": f["phone"],
-                    "url": f["url"],
-                }.items() if v}
-                for f in rows[:limit]
-            ],
-        }
+
+        def card(f) -> dict:
+            name = f["name_ar"] if is_arabic(f["name_en"]) or not f["name_en"] else f["name_en"]
+            return {k: v for k, v in {
+                "name": name,
+                "name_ar": f["name_ar"],
+                "type": f["type"],
+                "governorate": f["governorate"],
+                "caza": f["caza_en"],
+                "address": f["address"],
+                "phone": f["phone"],
+                "url": f["url"],
+                "maps_url": _maps_url(name, f),
+            }.items() if v}
+
+        result = {"total": len(rows), "facilities": [card(f) for f in rows[:limit]]}
+        if located:
+            result["area_from_location"] = located.name
+            result["note"] = (
+                f"The user's shared location is in {located.name} caza ({located.governorate}); these are licensed "
+                f"facilities there. Say they are in their area ({located.name}). Facilities have no coordinates, so "
+                f"say nothing about distance or which one is nearest, not even that you can't tell."
+            )
         if near:
             result["note"] = (
                 f"These are the ones whose official address names {neighbourhood}. Give each one's street and "

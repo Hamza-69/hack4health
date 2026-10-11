@@ -1,7 +1,8 @@
 """Admin API for this module's UI, mounted at /api. Every route requires an admin token."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from typing import Annotated, Literal
+from zoneinfo import ZoneInfo
 
 from fastapi import Depends, HTTPException
 from h4h import Admin
@@ -182,4 +183,68 @@ async def insights(session: Session, days: int = 7) -> dict:
         "by_topic": sorted(({"topic": t, "count": c} for t, c in by_topic.items()), key=lambda t: -t["count"]),
         "top": sorted(repeated.values(), key=lambda e: (-e["count"], e["query"]))[:10],
         "not_found": sorted(not_found, key=lambda e: -e["count"])[:10],
+    }
+
+
+# Insights: counts only, never what was asked
+
+KINDS = {  # search_log.tool -> the kind of question
+    "search_services": "Services",
+    "search_ministry_site": "Ministry site",
+    "lookup_drug": "Medicines",
+    "find_facilities": "Facilities",
+}
+MIN_COUNT = 5  # smaller counts are hidden, so no one person's question can be picked out
+LEBANON = ZoneInfo("Asia/Beirut")
+
+
+def shown(n: int) -> int | None:
+    """The count, or None (shown as "fewer than 5") when it is under MIN_COUNT."""
+    return n if n >= MIN_COUNT else None
+
+
+@module.api.get("/insights/weekly")
+async def weekly_insights(session: Session) -> dict:
+    """Questions per day for the last 7 days by kind, the share of searches that found something,
+    and the top 5 rumours. Counts under 5 come back as null."""
+    today = datetime.now(LEBANON).date()
+    days = [today - timedelta(days=n) for n in range(6, -1, -1)]
+    since = datetime.combine(days[0], time(), LEBANON)
+
+    def per_day(model, *columns):
+        day = func.date(func.timezone(LEBANON.key, model.created_at))
+        return select(*columns, day, func.count()).where(model.created_at >= since).group_by(*columns, day)
+
+    counts: dict[str, dict[date, int]] = {kind: {} for kind in [*dict.fromkeys(KINDS.values()), "Unanswered", "Rumours"]}
+    for tool, day, n in await session.execute(per_day(SearchLog, SearchLog.tool)):
+        if kind := KINDS.get(tool):
+            counts[kind][day] = counts[kind].get(day, 0) + n
+    for model, kind in ((Gap, "Unanswered"), (Claim, "Rumours")):
+        for day, n in await session.execute(per_day(model)):
+            counts[kind][day] = n
+
+    total, answered = (await session.execute(
+        select(func.count(), func.count().filter(SearchLog.results > 0))
+        .where(SearchLog.created_at >= since, SearchLog.tool.in_(KINDS))
+    )).one()
+
+    rumours: dict[str, dict] = {}
+    claims = select(Claim.key, Claim.verdict).where(Claim.created_at >= since).order_by(Claim.created_at.desc())
+    for key, verdict in await session.execute(claims):
+        rumour = rumours.setdefault(key, {"key": key, "count": 0, "verdict": verdict})  # the newest verdict
+        rumour["count"] += 1
+    top = sorted(rumours.values(), key=lambda r: -r["count"])[:5]
+
+    return {
+        "days": [d.isoformat() for d in days],
+        "kinds": [
+            {"kind": kind, "per_day": [shown(c.get(d, 0)) for d in days], "total": shown(sum(c.values()))}
+            for kind, c in counts.items()
+        ],
+        "searches": {
+            "answered": shown(answered),
+            "unanswered": shown(total - answered),
+            "answered_share": round(answered / total, 2) if total >= MIN_COUNT else None,
+        },
+        "rumours": [r | {"count": shown(r["count"])} for r in top],
     }

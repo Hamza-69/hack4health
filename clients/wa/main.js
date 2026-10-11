@@ -171,7 +171,9 @@ function reader(content, m) {
     case 'locationMessage':
     case 'liveLocationMessage': {
       const { name, address, degreesLatitude: lat, degreesLongitude: lon } = content.locationMessage ?? content.liveLocationMessage
-      return async () => [`[location: ${[name, address].filter(Boolean).join(', ') || `${lat?.toFixed(5)}, ${lon?.toFixed(5)}`}]`]
+      const place = [name, address].filter(Boolean).join(', ')
+      const at = lat != null && lon != null ? `${lat.toFixed(5)}, ${lon.toFixed(5)}` : ''
+      return async () => [`[location: ${place && at ? `${place} (${at})` : place || at}]`]
     }
     case 'videoMessage':
     case 'ptvMessage':

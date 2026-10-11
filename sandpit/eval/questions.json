@@ -140,6 +140,27 @@
     "expect": "Says the ministry's Facility Locator copy has no pharmacies for the North (only Beirut, Mount Lebanon, Bekaa, Baalbek-Hermel), so it cannot list them and this does not mean none exist; cannot tell opening hours. No invented pharmacies."
   },
   {
+    "id": "location_hospital_lb",
+    "topic": "facilities",
+    "language": "lebanese",
+    "question": "[location: American University of Beirut, Bliss Street (33.90081, 35.48000)]\nفي مستشفى قريب مني؟",
+    "expect": "Calls find_facilities with the lat/lon (hospitals) without asking which town. Says these are hospitals in their area (Beirut), lists a few with phone numbers and a Google Maps link after each. No distances, never 'the nearest' or 'X km away'. Replies in Lebanese Arabic."
+  },
+  {
+    "id": "location_pharmacy_en",
+    "topic": "facilities",
+    "language": "english",
+    "question": "[location: 33.84630, 35.90200]\nI need a pharmacy near me",
+    "expect": "Calls find_facilities with type pharmacy and the lat/lon, without asking which town. Says these are pharmacies in their area (Zahle), lists a few with phone numbers and a Google Maps link after each. No distances, never 'the nearest'. Cannot say whether they are open or have a medicine in stock."
+  },
+  {
+    "id": "location_no_type_arabizi",
+    "topic": "facilities",
+    "language": "arabizi",
+    "question": "[location: 34.43670, 35.84970]\nshu fi 2ariib menne?",
+    "expect": "Does not ask which town. Either asks in one short question what kind of place they need (hospital, pharmacy, health centre...), or lists facilities in their area (Tripoli) with Google Maps links. No distances. Replies in Arabizi."
+  },
+  {
     "id": "stroke_coverage_msa",
     "topic": "recent announcement",
     "language": "msa",

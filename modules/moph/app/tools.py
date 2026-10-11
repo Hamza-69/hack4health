@@ -114,17 +114,24 @@ async def find_facilities(
     type: Annotated[FacilityType | None, Field(description="Kind of facility")] = None,
     area: Annotated[str | None, Field(description="Governorate, caza (qada) or a common neighbourhood or town, in English or Arabic, e.g. 'Akkar', 'زحلة', 'Hamra'")] = None,
     name: Annotated[str | None, Field(description="Part of the facility's name")] = None,
+    lat: Annotated[float | None, Field(ge=-90, le=90, description="Latitude of a location the user shared, e.g. 33.8963")] = None,
+    lon: Annotated[float | None, Field(ge=-180, le=180, description="Longitude of that location, e.g. 35.4826")] = None,
     limit: Annotated[int, Field(ge=1, le=25)] = 10,
 ) -> dict:
     """Find licensed health facilities from the ministry's Facility Locator by type, area and/or
-    name: hospitals, primary health care centres, pharmacies, radiology labs, physiotherapy centres,
-    dental labs, nurseries. Gives the address (in Arabic), phone, caza and the official page. There is
-    no stock: for whether a pharmacy has a medicine, give pharmacies in the area to call."""
-    if not (type or area or name):
-        raise ToolError("give at least one of type, area or name")
+    name, or near a location the user shared (lat and lon, used when no area is given): hospitals,
+    primary health care centres, pharmacies, radiology labs, physiotherapy centres, dental labs,
+    nurseries. Gives the address (in Arabic), phone, caza, the official page and a Google Maps link.
+    A location is matched to its caza (area_from_location), not to distances. There is no stock:
+    for whether a pharmacy has a medicine, give pharmacies in the area to call."""
+    if (lat is None) != (lon is None):
+        raise ToolError("give both lat and lon")
+    if not (type or area or name or lat is not None):
+        raise ToolError("give at least one of type, area, name or lat and lon")
     catalog = await _catalog(ctx)
-    result = catalog.find_facilities(type=type, area=area, name=name, limit=limit)
-    await _log("find_facilities", " | ".join(filter(None, [type, area, name])), result["total"])
+    result = catalog.find_facilities(type=type, area=area, name=name, limit=limit, lat=lat, lon=lon)
+    where = result.get("area_from_location") and f"location: {result['area_from_location']}"
+    await _log("find_facilities", " | ".join(filter(None, [type, area or where, name])), result["total"])
     return _answer(catalog, result.pop("facilities"), **result)
 
 
