@@ -13,3 +13,8 @@ ui_url = "http://localhost:5175"
 title = "Ministry Inbox"
 url = "http://localhost:8003"
 ui_url = "http://localhost:5176"
+
+[bills]
+title = "Hospital Bills"
+url = "http://localhost:8004"
+ui_url = "http://localhost:5177"

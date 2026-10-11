@@ -1,0 +1,156 @@
+{
+  "about": "What the ministry pays at a hospital, from its own circulars and statements. demo_hospitals are fictional, for the demo bill in sandpit/demo/specimens.html; BILLS_DEMO=0 leaves them out. Update when a new one comes out: add the source, add a timeline line, and change cover.py if the rule itself changed.",
+  "sources": {
+    "usual_rates": {
+      "date": "2025-12-13",
+      "title": "ناصر الدين خلال لقاء مع مديري المستشفيات في بعلبك",
+      "url": "https://www.moph.gov.lb/ar/Pages/127/81928/",
+      "says": "The minister: the usual ministry shares are 80% at a government hospital and 65% at a private hospital."
+    },
+    "border_displaced": {
+      "date": "2026-01-30",
+      "title": "وزيرا الصحة والشؤون الاجتماعية أعلنا آلية التغطية الصحية لنازحي الحافة الأمامية",
+      "url": "https://www.moph.gov.lb/ar/Pages/127/82424/",
+      "says": "Cover at government hospitals is usually 80%; for people displaced from the border villages it is 100%, for hospital stays and the operations the ministry lists (circular 26/1/3165)."
+    },
+    "war_cover": {
+      "date": "2026-03-03",
+      "title": "وزير الصحة أعلن زيادة التغطية الاستشفائية والدوائية خلال فترة الحرب",
+      "url": "https://www.moph.gov.lb/ar/Pages/127/82829/",
+      "says": "During the war: 100% at government hospitals for every uninsured Lebanese, displaced or not, for the medical acts the ministry covers; emergency departments covered too; the wounded treated at the ministry's expense in government and private hospitals, insured or not; dialysis and chemotherapy patients 100% wherever they are."
+    },
+    "circular_8685": {
+      "date": "2026-03-14",
+      "title": "وزير الصحة يطلب من مستشفيات حكومية وخاصة الالتزام بتغطية كاملة للمرضى والنازحين",
+      "url": "https://www.moph.gov.lb/ar/Pages/127/83157/",
+      "says": "Circular 26/1/8685: the government hospitals and the listed private hospitals must give 100% cover for hospital stays and emergencies, without charging differences, under threat of legal action. Uninsured patients asked to pay differences should report it to the ministry on 1787."
+    },
+    "repeat_1787": {
+      "date": "2026-03-20",
+      "title": "ناصر الدين جال في مركزي إيواء في بيروت",
+      "url": "https://www.moph.gov.lb/ar/Pages/127/83328/",
+      "says": "The minister: full cover for every uninsured displaced patient at government hospitals and listed private ones; anyone asked to pay differences should call 1787."
+    },
+    "all_uninsured": {
+      "date": "2026-07-02",
+      "title": "الصحة تنفي أنباء مختلقة وتؤكد أن تغطية الطوارئ والإستشفاء تشمل كل اللبنانيين غير المضمونين",
+      "url": "https://www.moph.gov.lb/ar/Pages/127/85973/",
+      "says": "The ministry covers emergencies and hospital stays at 100% for every uninsured Lebanese, displaced or not, at government hospitals and the private hospitals that accepted its fair treatment ceiling. It covers all emergencies and a certain number of hospital cases, not all."
+    },
+    "port_blast": {
+      "date": "2026-08-13",
+      "title": "قرار يحدد آلية تغطية علاج جرحى انفجار المرفأ بنسبة 100% على نفقة الوزارة",
+      "url": "https://www.moph.gov.lb/ar/Pages/127/86598/",
+      "says": "People wounded in the Beirut port explosion: 100% of the care linked to the injury, whatever their other cover, at every government hospital and at the private hospital already treating them. Hospitals are strictly forbidden to charge them any difference."
+    },
+    "freeze": {
+      "date": "2026-09-06",
+      "title": "الوزير ناصر الدين: المستشفيات الحكومية بدأت تحقق أرباحًا والتغطية الشاملة حلم قابل للتحقيق",
+      "url": "https://www.moph.gov.lb/ar/Pages/127/86817/",
+      "says": "The ministry has documented violations; freezing work with some doctors and hospitals is under review. Report any shortfall or complaint on 1214 or 1787."
+    },
+    "joint_follow_up": {
+      "date": "2026-10-01",
+      "title": "اجتماع مشترك لوزارة الصحة ونقابة المستشفيات",
+      "url": "https://www.moph.gov.lb/ar/Media/view/87216/",
+      "says": "The ministry and the Hospitals Syndicate agreed on joint follow-up to stop hospitals charging patients extra differences against the rules."
+    }
+  },
+  "timeline": [
+    {"date": "2025-12-13", "change": "Usual ministry share: 80% at government hospitals, 65% at private ones.", "source": "usual_rates"},
+    {"date": "2026-01-30", "change": "100% at government hospitals for people displaced from the border villages.", "source": "border_displaced"},
+    {"date": "2026-03-03", "change": "100% at government hospitals for all uninsured Lebanese during the war.", "source": "war_cover"},
+    {"date": "2026-03-14", "change": "Circular: government hospitals and 44 listed private hospitals must not charge differences; report to 1787.", "source": "circular_8685"},
+    {"date": "2026-07-02", "change": "100% for all uninsured Lebanese at government hospitals and private ones that accepted the ministry's ceiling.", "source": "all_uninsured"},
+    {"date": "2026-08-13", "change": "100% for people wounded in the port explosion; hospitals may not charge them any difference.", "source": "port_blast"},
+    {"date": "2026-10-01", "change": "Joint follow-up with the Hospitals Syndicate against extra charges.", "source": "joint_follow_up"}
+  ],
+  "list": {
+    "source": "circular_8685",
+    "pdf": "https://www.moph.gov.lb/userfiles/images/News/14-3-2026/%D8%AA%D8%BA%D8%B7%D9%8A%D8%A9%20%D8%A7%D9%84%D9%85%D8%B1%D8%B6%D9%89%20%D8%A7%D9%84%D9%84%D8%A8%D9%86%D8%A7%D9%86%D9%8A%D9%8A%D9%86%20100%25%20%D8%B9%D9%84%D9%89%20%D9%86%D9%81%D9%82%D8%A9%20%D9%88%D8%B2%D8%A7%D8%B1%D8%A9%20%D8%A7%D9%84%D8%B5%D8%AD%D8%A9%20%D8%AA%D8%A3%D9%83%D9%8A%D8%AF%20%D8%AA%D8%BA%D8%B7%D9%8A%D8%A9%20(1).pdf",
+    "note": "The newest list the ministry has published. The 2 July 2026 statement mentions a list of private hospitals that accepted the ministry's ceiling, but it is not on the site."
+  },
+  "demo_hospitals": [
+    {"name_ar": "مستشفى السنديان الحكومي", "name_en": "Al Sindyan Governmental Hospital", "kind": "government", "aliases": ["Sindyan hospital", "مستشفى السنديان"]}
+  ],
+  "hospitals": [
+    {"name_ar": "بيروت الحكومي الجامعي", "kind": "government", "facility_id": 84388, "name_en": "Rafik Hariri University Hospital (Beirut Governmental)", "aliases": ["مستشفى رفيق الحريري الجامعي", "مستشفى الحريري", "Rafik Hariri University Hospital", "Hariri hospital"]},
+    {"name_ar": "بيروت الحكومي - الكرنتينا", "kind": "government", "facility_id": 84361, "aliases": ["Karantina hospital"]},
+    {"name_ar": "بعبدا الحكومي", "kind": "government", "facility_id": 84390},
+    {"name_ar": "ضهر الباشق الحكومي", "kind": "government", "facility_id": 84389},
+    {"name_ar": "الشحار الغربي الحكومي", "kind": "government", "facility_id": 84364},
+    {"name_ar": "سبلين الحكومي", "kind": "government", "facility_id": 84365},
+    {"name_ar": "فتوح كسروان الحكومي (البوار)", "kind": "government", "facility_id": 84367, "aliases": ["البوار الحكومي", "Bouar governmental hospital"]},
+    {"name_ar": "اورانج ناسو الحكومي", "kind": "government", "facility_id": 84381},
+    {"name_ar": "طرابلس الحكومي", "kind": "government", "facility_id": 84377},
+    {"name_ar": "تنورين الحكومي", "kind": "government", "facility_id": 84373},
+    {"name_ar": "سير الضنية الحكومي", "kind": "government", "facility_id": 84376},
+    {"name_ar": "اهدن الحكومي", "kind": "government", "facility_id": 84380},
+    {"name_ar": "الدكتور عبد الله الراسي الحكومي", "kind": "government", "facility_id": 84372, "aliases": ["حلبا الحكومي", "Halba governmental hospital"]},
+    {"name_ar": "بشري الحكومي", "kind": "government", "facility_id": 84375},
+    {"name_ar": "المنية الحكومي", "kind": "government", "facility_id": 84391},
+    {"name_ar": "التركي الحكومي", "kind": "government", "facility_id": null, "name_en": "Turkish governmental hospital (Saida)", "aliases": ["المستشفى التركي", "Turkish hospital"]},
+    {"name_ar": "صيدا الحكومي", "kind": "government", "facility_id": 84379},
+    {"name_ar": "جزين الحكومي", "kind": "government", "facility_id": 84378},
+    {"name_ar": "نبيه بري الجامعي الحكومي", "kind": "government", "facility_id": 84371, "aliases": ["مستشفى نبيه بري", "Nabih Berri hospital"]},
+    {"name_ar": "ميس الجبل الحكومي", "kind": "government", "facility_id": 84370},
+    {"name_ar": "مرجعيون الحكومي", "kind": "government", "facility_id": 84369},
+    {"name_ar": "حاصبيا الحكومي", "kind": "government", "facility_id": 84368},
+    {"name_ar": "بنت جبيل الحكومي", "kind": "government", "facility_id": 84384},
+    {"name_ar": "صور الحكومي", "kind": "government", "facility_id": 84386},
+    {"name_ar": "تبنين الحكومي", "kind": "government", "facility_id": 84385},
+    {"name_ar": "قانا الحكومي", "kind": "government", "facility_id": 84387},
+    {"name_ar": "الرئيس الياس الهراوي الحكومي", "kind": "government", "facility_id": 84363, "aliases": ["زحلة الحكومي", "Zahle governmental hospital"]},
+    {"name_ar": "بعلبك الحكومي", "kind": "government", "facility_id": 84383},
+    {"name_ar": "الهرمل الحكومي", "kind": "government", "facility_id": 84382},
+    {"name_ar": "راشيا الحكومي", "kind": "government", "facility_id": 84362},
+    {"name_ar": "خربة قنافار الحكومي", "kind": "government", "facility_id": 84393},
+    {"name_ar": "البترون الحكومي", "kind": "government", "facility_id": 84374},
+    {"name_ar": "مشغرة الحكومي", "kind": "government", "facility_id": 84392},
+
+    {"name_ar": "حامد فرحات", "kind": "private", "facility_id": 84554},
+    {"name_ar": "حمود", "kind": "private", "facility_id": 84651},
+    {"name_ar": "اللبناني الايطالي", "kind": "private", "facility_id": 84663, "aliases": ["Lebanese Italian Hospital"]},
+    {"name_ar": "بشامون التخصصي", "kind": "private", "facility_id": 84565},
+    {"name_ar": "الشيخ راغب حرب", "kind": "private", "facility_id": 84621, "aliases": ["Sheikh Ragheb Harb Hospital"]},
+    {"name_ar": "هيلث مديكال سنتر (عسيران)", "kind": "private", "facility_id": 84653},
+    {"name_ar": "البقاع الغربي – سحمر", "kind": "private", "facility_id": 84552},
+    {"name_ar": "مركز لبنان الطبي", "kind": "private", "facility_id": null, "name_en": "Lebanese Medical Center (Hadath)", "aliases": ["Lebanon Medical Center"]},
+    {"name_ar": "جبل عامل", "kind": "private", "facility_id": 84665},
+    {"name_ar": "الجبل", "kind": "private", "facility_id": 84570},
+    {"name_ar": "عين وزين", "kind": "private", "facility_id": 84586},
+    {"name_ar": "الزهراء", "kind": "private", "facility_id": 84581},
+    {"name_ar": "مركز الشمال الاستشفائي", "kind": "private", "facility_id": 84647},
+    {"name_ar": "الحبتور", "kind": "private", "facility_id": null, "name_en": "Al Habtoor Hospital"},
+    {"name_ar": "الحنان الخيري", "kind": "private", "facility_id": 84642},
+    {"name_ar": "دار الشفاء – طرابلس", "kind": "private", "facility_id": 84633},
+    {"name_ar": "سيدة زغرتا", "kind": "private", "facility_id": 84646},
+    {"name_ar": "الكورة", "kind": "private", "facility_id": 84629},
+    {"name_ar": "البتول", "kind": "private", "facility_id": 84667},
+    {"name_ar": "العاصي", "kind": "private", "facility_id": 84668},
+    {"name_ar": "المرتضى", "kind": "private", "facility_id": 84673},
+    {"name_ar": "دار الامل الجامعي", "kind": "private", "facility_id": 84669},
+    {"name_ar": "الريان – بعلبك", "kind": "private", "facility_id": 84672},
+    {"name_ar": "رياق – العيد الله", "kind": "private", "facility_id": 84557},
+    {"name_ar": "المياس", "kind": "private", "facility_id": 84559},
+    {"name_ar": "شتورا", "kind": "private", "facility_id": 84558},
+    {"name_ar": "البقاع", "kind": "private", "facility_id": 84562},
+    {"name_ar": "سلوم مديكال سنتر – تعنايل سابقا", "kind": "private", "facility_id": 84560, "aliases": ["Salloum Medical Center"]},
+    {"name_ar": "دار الحكمة – بعلبك", "kind": "private", "facility_id": 84670},
+    {"name_ar": "بعقلين الطبي", "kind": "private", "facility_id": 84590},
+    {"name_ar": "الوردية", "kind": "private", "facility_id": 84539},
+    {"name_ar": "اللبناني الفرنسي", "kind": "private", "facility_id": 84556},
+    {"name_ar": "مديكال 2000", "kind": "private", "facility_id": 84568},
+    {"name_ar": "السلام - طرابلس", "kind": "private", "facility_id": 84634},
+    {"name_ar": "الاقليم الصحية", "kind": "private", "facility_id": null, "name_en": "Iqlim Health Hospital"},
+    {"name_ar": "ابن سينا", "kind": "private", "facility_id": 84666},
+    {"name_ar": "دار الكرامة", "kind": "private", "facility_id": null, "name_en": "Dar Al Karama Hospital"},
+    {"name_ar": "قصب", "kind": "private", "facility_id": 84656},
+    {"name_ar": "الرسول الاعظم", "kind": "private", "facility_id": 84573},
+    {"name_ar": "حيرام", "kind": "private", "facility_id": 84662},
+    {"name_ar": "الفقيه", "kind": "private", "facility_id": 84660},
+    {"name_ar": "النجدة الشعبية", "kind": "private", "facility_id": 84622},
+    {"name_ar": "الشهيد صلاح غندور – بنت جبيل", "kind": "private", "facility_id": null, "name_en": "Salah Ghandour Hospital (Bint Jbeil)", "aliases": ["مستشفى صلاح غندور"]},
+    {"name_ar": "علاء الدين", "kind": "private", "facility_id": 84650}
+  ]
+}
