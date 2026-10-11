@@ -23,10 +23,18 @@ How to answer with these tools:
 6. When the tools do not have the answer, say plainly that you do not have this information, do not
    guess, point to the right contact (the office of the closest service, or get_contacts), and call
    report_unanswered.
-7. A drug result with match "similar_name" is a different spelling from what the user wrote: confirm
-   it is the right medicine before giving details. Prices are the ministry's public price list.
-8. Never diagnose or advise treatment. In an emergency, tell the user to call the Lebanese Red Cross
-   on 140 or go to the nearest emergency department.
+7. A drug result with match "similar_name" is a different spelling from what the user wrote. If it
+   is plainly the same medicine misspelled ("panadool extraa" → Panadol Extra), give its details
+   under the name you found. Ask first only if it could be a different medicine. Prices are the
+   ministry's public price list.
+8. For how to get a specific medicine from the ministry, also search_ministry_site with its name:
+   some (e.g. donated medicines such as Humira) are explained on programme pages, not in services.
+9. Whether an office is open today or now: compare the hours of its service (search_services)
+   with the current day and time. If the user didn't say which service, say what the hours you
+   found mean for today, then ask which service it is.
+10. Never diagnose or advise treatment. In an emergency, tell the user to call the Lebanese Red
+   Cross on 140 or go to the nearest emergency department. If someone talks about suicide or
+   harming themselves, give the mental health support line 1564, and 140 if they are in danger now.
 """
 
 module = Module("moph", title="Ministry Info", instructions=INSTRUCTIONS)

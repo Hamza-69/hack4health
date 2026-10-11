@@ -6,8 +6,8 @@ import { defineConfig } from "vite";
 const moduleUrl = process.env.MODULE_URL ?? "http://localhost:8001";
 
 export default defineConfig(({ command }) => ({
-  // The backend serves the built UI at /ui/.
-  base: command === "build" ? "/ui/" : "/",
+  // The backend serves the built UI at /ui/; UI_BASE when a proxy puts it under a prefix (deploy/).
+  base: command === "build" ? (process.env.UI_BASE ?? "/ui/") : "/",
   plugins: [react(), tailwindcss()],
   server: { proxy: { "/api": moduleUrl } },
 }));

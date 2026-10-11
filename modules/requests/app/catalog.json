@@ -16,7 +16,7 @@
       {"key": "procedure", "label_en": "Operation or reason for admission", "label_ar": "العملية أو سبب الدخول"},
       {"key": "hospital", "label_en": "Hospital", "label_ar": "المستشفى"},
       {"key": "applicant", "label_en": "Who is applying (the patient, or a relative and how they are related)", "label_ar": "مقدم الطلب (المريض أو قريبه وصلة القرابة)"},
-      {"key": "no_other_cover", "label_en": "Patient confirms no other cover (the written pledge is signed at the desk)", "label_ar": "يؤكد المريض عدم استفادته من أي جهة ضامنة أخرى (يوقع التعهد الخطي عند الاستلام)"}
+      {"key": "no_other_cover", "confirm": true, "label_en": "Patient confirms no other cover (the written pledge is signed at the desk)", "label_ar": "يؤكد المريض عدم استفادته من أي جهة ضامنة أخرى (يوقع التعهد الخطي عند الاستلام)"}
     ],
     "desk": "Card issuing centre, Hospitals Service, Directorate of Medical Care (مركز إعطاء البطاقات)",
     "desk_contact": "Bir Hassan, Jnah, near Ogero · hospitals@moph.gov.lb · 01-830300 ext. 510",

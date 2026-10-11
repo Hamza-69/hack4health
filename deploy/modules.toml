@@ -1,0 +1,12 @@
+# The module registry on Fly. deploy/start.sh fills in PUBLIC_URL. Backends stay on localhost for the
+# core; the admin panel embeds each UI through Caddy (deploy/Caddyfile).
+
+[moph]
+title = "Ministry Info"
+url = "http://localhost:8002"
+ui_url = "PUBLIC_URL/modules/moph/ui/"
+
+[requests]
+title = "Ministry Inbox"
+url = "http://localhost:8003"
+ui_url = "PUBLIC_URL/modules/requests/ui/"

@@ -197,7 +197,7 @@ function setStatus(text, online) {
 function connect() {
   if (source) source.close();
   setStatus("connecting…", false);
-  source = new EventSource(`/api/events?account_id=${account}`);
+  source = new EventSource(`api/events?account_id=${account}`);
   source.onopen = () => setStatus(`online · you are web:${account.slice(0, 8)}`, true);
   source.onerror = () => setStatus("reconnecting…", false);
   source.onmessage = (e) => handle(JSON.parse(e.data));
@@ -254,7 +254,7 @@ function send(text) {
   add({ who: "me", text, state: "pending" });
   enqueue(async () => {
     try {
-      const response = await fetch("/api/send", {
+      const response = await fetch("api/send", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ account_id: account, text }),
@@ -279,7 +279,7 @@ function sendFile(file, kind) {
     form.append("account_id", account);
     form.append("file", file, file.name || kind);
     try {
-      const response = await fetch("/api/media", { method: "POST", body: form });
+      const response = await fetch("api/media", { method: "POST", body: form });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.detail || `HTTP ${response.status}`);
       const [, tag, link, note] = body.message.match(/^\[(voice note|photo|document)(?: (\S+))?\] ?([\s\S]*)$/) || [];

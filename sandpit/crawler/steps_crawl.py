@@ -128,19 +128,15 @@ async def step_facility_details(f: Fetcher, st: Stores) -> None:
     rows = list(csv.DictReader(path.open(encoding="utf-8-sig")))
     out = []
 
+    # The Arabic page is a copy of the English one (same fields, English labels), and find_facilities
+    # serves these, so they stay out of pages.jsonl and site search.
     async def one(row):
         rec = {"facility_id": row.get("facility_id"), "name_en": row.get("name_en"), "type": row.get("type")}
-        for lang, col in (("en", "url"), ("ar", "url_ar")):
-            u = row.get(col)
-            if not u:
-                continue
-            u = P.normalize_url(u, C.BASE, lang)
-            r = await f.get(u)
+        if u := row.get("url"):
+            r = await f.get(P.normalize_url(u, C.BASE, "en"))
             if r.ok:
-                kv = P.parse_kv_details(r.text)
-                for k, v in kv.items():
-                    rec[f"{lang}:{k}"] = v
-                st.add_page_from_html(u, r.text, section="facility", extra={"facility_id": row.get("facility_id")})
+                for k, v in P.parse_kv_details(r.text).items():
+                    rec[f"en:{k}"] = v
         return rec
 
     for i in range(0, len(rows), 60):

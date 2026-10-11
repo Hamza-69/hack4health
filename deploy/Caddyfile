@@ -1,0 +1,29 @@
+# The one public port on Fly. Every part keeps its own paths behind a prefix, so they share one origin.
+{
+	admin off
+	auto_https off
+}
+
+:8080 {
+	handle_path /api/* {
+		reverse_proxy localhost:8000
+	}
+	handle /media/* {
+		reverse_proxy localhost:8000
+	}
+	handle_path /modules/moph/* {
+		reverse_proxy localhost:8002
+	}
+	handle_path /modules/requests/* {
+		reverse_proxy localhost:8003
+	}
+	redir /chat /chat/
+	handle_path /chat/* {
+		reverse_proxy localhost:9000
+	}
+	handle {
+		root * /app/admin/dist
+		try_files {path} /index.html
+		file_server
+	}
+}

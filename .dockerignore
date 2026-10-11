@@ -1,0 +1,12 @@
+**/.venv
+**/node_modules
+**/dist
+**/__pycache__
+**/.env
+**/.pytest_cache
+.git
+.claude
+keys
+media
+clients/wa/auth
+sandpit

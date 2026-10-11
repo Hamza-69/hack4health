@@ -11,6 +11,7 @@ import pytest
 from app import search_index
 from app.catalog import Catalog
 from app.ingest import data_dir, load_files
+from app.text import normalize
 
 pytestmark = pytest.mark.skipif(
     not (data_dir() / "structured" / "services_clean.json").exists(), reason="no crawl data"
@@ -48,6 +49,21 @@ def test_facilities_by_type_and_area(catalog):
     assert all(f["type"] == "Governmental Hospitals" for f in result["facilities"])
     assert catalog.find_facilities(type="primary_care_center", area="عكار")["total"] >= 1
     assert catalog.find_facilities(area="zahle")["total"] >= 1
+
+
+def test_exact_area_name_wins_over_a_longer_one(catalog):
+    for area in ("Jbeil", "جبيل"):
+        result = catalog.find_facilities(type="government_hospital", area=area)
+        assert result["total"] >= 1
+        assert all(f["caza"] == "Jbeil" for f in result["facilities"]), area  # not Bint Jbeil
+
+
+def test_neighbourhood_is_matched_on_the_official_address(catalog):
+    result = catalog.find_facilities(type="pharmacy", area="hamra", limit=25)
+    names = [f["name"] for f in result["facilities"]]
+    assert "صيدلية الحمرا" in names
+    assert "PHARMACIA" not in names  # Beirut, but its address is Zqaq el Blat
+    assert all("حمرا" in normalize(f.get("address") or f["name"]) for f in result["facilities"])
 
 
 def test_empty_result_warns_list_is_incomplete(catalog):

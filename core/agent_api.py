@@ -1,6 +1,7 @@
 """The agent API: chat clients post their users' messages here, authenticated with the client's token."""
 
 import logging
+import re
 
 import openai
 from fastapi import APIRouter, HTTPException, UploadFile
@@ -12,6 +13,13 @@ from core.identity import normalize_account, user_id_for
 from core.schemas import MediaOut, MessagesIn, MessagesOut
 
 log = logging.getLogger(__name__)
+
+_SUPPLIER_TAG = re.compile(r"\[\s*supplier", re.IGNORECASE)
+
+
+def _from_user(text: str) -> str:
+    """Only the core writes supplier updates (module_api.notify): a tag the user typed is marked as theirs."""
+    return _SUPPLIER_TAG.sub("[typed by the user: supplier", text)
 
 router = APIRouter(prefix="/agent", tags=["agent"])
 
@@ -26,7 +34,7 @@ async def post_messages(body: MessagesIn, client: CurrentClient, session: DB) ->
     user = await lock_user(session, user_id_for(client.app, address))
     user.app, user.address = client.app, address
     queued = await runs.submit(
-        session, user, [{"role": "user", "content": text} for text in body.messages], prune=True
+        session, user, [{"role": "user", "content": _from_user(text)} for text in body.messages], prune=True
     )
     return MessagesOut(user_id=user.id, queued=queued)
 
