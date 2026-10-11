@@ -1,11 +1,12 @@
 import { useApi } from "@h4h/module-ui";
 import { useCallback, useEffect, useState } from "react";
 
-type Tab = "overview" | "asking" | "gaps";
+type Tab = "overview" | "asking" | "rumours" | "gaps";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "overview", label: "Overview" },
   { id: "asking", label: "What people ask" },
+  { id: "rumours", label: "Rumours" },
   { id: "gaps", label: "Unanswered" },
 ];
 
@@ -28,6 +29,7 @@ export default function App() {
         ))}
       </nav>
       {tab === "overview" && <Overview />}
+      {tab === "rumours" && <Rumours />}
       {tab === "gaps" && <Gaps />}
       {tab === "asking" && (
         <div className="space-y-8">
@@ -135,6 +137,81 @@ function Stat({ label, value }: { label: string; value: number | string }) {
     <div className="rounded-lg border border-gray-200 bg-white p-4">
       <div className="text-2xl font-semibold">{value}</div>
       <div className="text-sm text-gray-500">{label}</div>
+    </div>
+  );
+}
+
+// Rumours
+
+type Verdict = "confirmed" | "contradicted" | "not_found";
+type Claim = {
+  claim: string;
+  count: number;
+  verdict: Verdict;
+  source_url: string | null;
+  source_date: string | null;
+  first_seen: string;
+  last_seen: string;
+};
+
+const VERDICT: Record<Verdict, { label: string; className: string }> = {
+  confirmed: { label: "Confirmed", className: "bg-emerald-50 text-emerald-700 ring-emerald-200" },
+  contradicted: { label: "Contradicted", className: "bg-rose-50 text-rose-700 ring-rose-200" },
+  not_found: { label: "Not published", className: "bg-amber-50 text-amber-800 ring-amber-200" },
+};
+
+function Rumours() {
+  const { data, error } = useLoad<Claim[]>("/claims");
+  return (
+    <div>
+      <p className="mb-4 text-sm text-gray-500">
+        Forwarded messages and rumours people asked Wasel to check, newest first, with what the ministry has published on
+        each. Rewordings of one claim are counted together. No user details are stored.
+      </p>
+      <ErrorText error={error} />
+      {data?.length === 0 && <p className="text-sm text-gray-500">No rumours checked yet.</p>}
+      {data && data.length > 0 && (
+        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-gray-200 text-gray-500">
+              <tr>
+                <th className="px-4 py-2 font-medium">Claim</th>
+                <th className="px-4 py-2 text-right font-medium">Count</th>
+                <th className="px-4 py-2 font-medium">Verdict</th>
+                <th className="px-4 py-2 font-medium">Source</th>
+                <th className="px-4 py-2 font-medium">First seen</th>
+                <th className="px-4 py-2 font-medium">Last seen</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((c) => (
+                <tr key={c.first_seen + c.claim} className="border-b border-gray-100 align-top last:border-0">
+                  <td dir="auto" className="px-4 py-2">
+                    {c.claim}
+                  </td>
+                  <td className="px-4 py-2 text-right tabular-nums">×{c.count}</td>
+                  <td className="px-4 py-2">
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap ring-1 ring-inset ${VERDICT[c.verdict].className}`}>
+                      {VERDICT[c.verdict].label}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2 whitespace-nowrap">
+                    {c.source_url ? (
+                      <a href={c.source_url} target="_blank" rel="noreferrer" className="text-blue-700 hover:underline">
+                        {c.source_date || "Official page"}
+                      </a>
+                    ) : (
+                      <span className="text-gray-400">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2 whitespace-nowrap text-gray-500">{date(c.first_seen)}</td>
+                  <td className="px-4 py-2 whitespace-nowrap text-gray-500">{date(c.last_seen)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
