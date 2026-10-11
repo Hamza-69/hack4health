@@ -27,10 +27,10 @@ from langgraph.runtime import Runtime
 from mcp_types import CallToolResult, Tool
 from openai import AsyncOpenAI
 from pydantic import BaseModel
-from sqlalchemy import func, select
+from sqlalchemy import exists, func, select
 
 from core import db, tools
-from core.models import Ticket, TicketStatus
+from core.models import Archive, Ticket, TicketStatus, User
 
 MODEL = os.environ.get("AGENT_MODEL", "openai:gpt-6.1-sol")  # any init_chat_model "provider:model"
 MODEL_TIMEOUT = 120  # seconds per model call
@@ -42,10 +42,10 @@ RESOLUTION_NOTES = 5  # resolutions of archived tickets given as background
 LEBANON = ZoneInfo("Asia/Beirut")  # for "is it open today?"
 
 PROMPT = """\
-You are Wasel (واصل), a WhatsApp assistant for the services of Lebanon's Ministry of Public Health. \
-You answer questions from what the ministry publishes: its services and how to apply, what it covers \
-and for whom, medicine prices, hospitals and health centres, hotlines and announcements. If asked \
-who you are, say this in one line; never call yourself anything but Wasel.
+You are Wasel (واصل), the assistant for the services of Lebanon's Ministry of Public Health, on \
+WhatsApp and the web. You answer questions from what the ministry publishes: its services and how to \
+apply, what it covers and for whom, medicine prices, hospitals and health centres, hotlines and \
+announcements. If asked who you are, say this in one line; never call yourself anything but Wasel.
 
 Language. Reply in the language, dialect and script of the user's last message, and never mix \
 scripts in one reply:
@@ -87,6 +87,32 @@ which town or area they are in.
 - "[... can't be opened]" or "[... could not be read]": say what you can read (text, voice notes, \
 photos, PDFs) and ask them to send it that way.
 """
+
+# Added to the prompt only until the user has had a first reply, so every new user meets Wasel the same way.
+WELCOME = """\
+## This person is writing to you for the first time
+
+Open your reply with a short welcome, in their language and script like every reply:
+1. A greeting, then who you are in one line: Wasel (واصل), the assistant for the services of \
+Lebanon's Ministry of Public Health.
+2. What you can do for them, as a short numbered list, one line each:
+{abilities}
+3. One line on how: type or send a voice note, in Arabic, English or Arabizi, and send photos of \
+papers when you ask for them.
+4. One line: you never give a medical diagnosis; in an emergency, call the Red Cross on 140.
+If their message is only a greeting, or asks who you are or what you can do, the welcome is the whole \
+reply: end it by asking what they need. If it already asks for something, shorten the welcome to the \
+greeting and who you are, in one sentence, then handle the request as usual (asking a short question \
+first when the rules call for it). Never repeat the welcome later in the chat."""
+
+ABILITIES = {  # module → what the welcome says it lets Wasel do
+    "moph": "answer questions from what the ministry publishes: services and how to apply, what it "
+    "covers and for whom, medicine prices, hospitals and health centres, hotlines",
+    "requests": "prepare and submit some requests to the ministry with them (a hospital stay or "
+    "operation at the ministry's expense, some medicines, complaints), and tell them here when it moves",
+    "bills": "check a hospital bill against what the ministry pays, and report a hospital that charges "
+    "a patient the ministry covers",
+}
 
 RESOLVE_TICKET = {
     "type": "function",
@@ -153,13 +179,26 @@ async def context(
             .order_by(Ticket.resolved_at.desc())
             .limit(RESOLUTION_NOTES)
         )
-        system = _system_prompt(modules, list(open_tickets), list(archived))
+        first = await _first_contact(session, user_id)
+        system = _system_prompt(modules, list(open_tickets), list(archived), first_contact=first)
     schemas = [RESOLVE_TICKET, *(_schema(tool) for module in modules for tool in module.tools)]
     return Context(user_id, system, schemas, sync, send)
 
 
-def _system_prompt(modules: list[tools.ModuleTools], open_tickets: list[Ticket], archived: list[Ticket]) -> str:
+async def _first_contact(session, user_id: uuid.UUID) -> bool:
+    """True until the user has been sent a reply: none in the live chat, and no archived chat."""
+    messages = await session.scalar(select(User.messages).where(User.id == user_id)) or []
+    if any(m.get("role") == "assistant" and m.get("content") for m in messages):
+        return False
+    return not await session.scalar(select(exists().where(Archive.user_id == user_id)))
+
+
+def _system_prompt(
+    modules: list[tools.ModuleTools], open_tickets: list[Ticket], archived: list[Ticket], *, first_contact: bool = False
+) -> str:
     parts = [PROMPT, f"Current time in Lebanon: {datetime.now(LEBANON):%A %Y-%m-%d %H:%M}"]
+    if first_contact and (abilities := [ABILITIES[m.name] for m in modules if m.name in ABILITIES]):
+        parts.append(WELCOME.format(abilities="\n".join(f"   - {a}" for a in abilities)))
     parts += [f"## Module {m.name}\n\n{m.instructions}" for m in modules if m.instructions]
     if open_tickets:
         parts.append("## The user's open tickets\n\n" + "\n".join(
