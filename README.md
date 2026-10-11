@@ -1,6 +1,17 @@
-# hack4health
+# Wasel · واصل
 
-A modular AI agent that users reach through WhatsApp, Telegram or the web. Each capability is a **module**: its own small service with MCP tools for the agent, its own database schema, and its own admin page that the admin panel embeds. The architecture is in [AGENTS.md](AGENTS.md).
+**The Ministry of Public Health's معقّب on WhatsApp.** Built at Hack for Health Lebanon (AUB, 10–11 October 2026), for challenge area 01: health information and access.
+
+*Ask it anything. When there's something to do, it does it.* · *اسأل… وهو بيخلّصلك المعاملة.*
+
+- **Knows.** Wasel answers questions from what the ministry publishes: 229 services, 6,032 medicines with public prices, 2,361 facilities and 2,395 pages and announcements crawled from moph.gov.lb. It answers in Arabic, English or Arabizi and links the official source. When the data has no answer, it says so and gives the right hotline. ([modules/moph](modules/moph/))
+- **Does.** When the answer is "you need to apply", Wasel prepares the request. It collects photos of the papers, catches what's missing, confirms with the family and submits it to the right desk with a number such as W-1042. Adding a service means adding an entry to [catalog.json](modules/requests/app/catalog.json). ([modules/requests](modules/requests/))
+- **Follows up.** The ministry decides in one inbox (Approve, Ask for more, Decline), and the patient hears back on WhatsApp within seconds. The "What people ask" panel shows questions by topic, the most asked, and the ones the ministry's data couldn't answer.
+- **Privacy.** A ministry desk sees only its own requests, never chats. Every decision is made by a person. Wasel never diagnoses or guesses.
+
+The architecture, the product and the hackathon context are in [AGENTS.md](AGENTS.md). Demo steps are in [sandpit/demo/RUNBOOK.md](sandpit/demo/RUNBOOK.md).
+
+Under the hood, Wasel is a modular AI agent that users reach through WhatsApp, Telegram or the web. Each capability is a **module**: a small service of its own, with MCP tools for the agent, its own database schema, and its own admin page that the admin panel embeds.
 
 ## Quick start
 

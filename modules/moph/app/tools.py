@@ -109,13 +109,14 @@ async def lookup_drug(
 async def find_facilities(
     ctx: Context,
     type: Annotated[FacilityType | None, Field(description="Kind of facility")] = None,
-    area: Annotated[str | None, Field(description="Governorate or caza (qada), in English or Arabic, e.g. 'Akkar', 'زحلة'")] = None,
+    area: Annotated[str | None, Field(description="Governorate, caza (qada) or a common neighbourhood or town, in English or Arabic, e.g. 'Akkar', 'زحلة', 'Hamra'")] = None,
     name: Annotated[str | None, Field(description="Part of the facility's name")] = None,
     limit: Annotated[int, Field(ge=1, le=25)] = 10,
 ) -> dict:
     """Find licensed health facilities from the ministry's Facility Locator by type, area and/or
     name: hospitals, primary health care centres, pharmacies, radiology labs, physiotherapy centres,
-    dental labs, nurseries. Gives phone, caza and the official page. There are no street addresses."""
+    dental labs, nurseries. Gives phone, caza and the official page. There are no street addresses,
+    and no stock: for whether a pharmacy has a medicine, give nearby pharmacies to call."""
     if not (type or area or name):
         raise ToolError("give at least one of type, area or name")
     catalog = await _catalog(ctx)

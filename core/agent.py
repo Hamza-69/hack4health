@@ -194,6 +194,7 @@ async def call_tools(state: State, runtime: Runtime[Context]) -> dict:
 
 
 _ARABIC = re.compile(r"[\u0600-\u06ff]")
+_ARABIC_WORDS = re.compile(r"[\u0600-\u06ff]+(?:\s+[\u0600-\u06ff]+)*")
 _ARABIZI = re.compile(
     r"[a-z][2356789][a-z]|\b[2357][a-z]|[a-z][2357]\b|"
     r"\b(shou|shu|kif|kifak|kifik|baddi|badde|bade|bado|eza|iza|3am|ma3|3and|3ande|ya3ne|adde|"
@@ -257,6 +258,8 @@ def _wrong_script(script: str, reply: str) -> bool:
 async def _rewrite(reply: AIMessage, script: str, user: str) -> AIMessage:
     """The model still slipped out of the user's script: have it rewrite the answer, keeping everything else."""
     instruction = _REWRITES[script].format(user=json.dumps(user[:300], ensure_ascii=False))
+    if script == "arabizi":  # name the words left in Arabic script, or the rewrite tends to keep some
+        instruction += f" These are still in Arabic script: {', '.join(dict.fromkeys(_ARABIC_WORDS.findall(reply.text)))}."
     rewrite = await get_model().ainvoke([
         SystemMessage(f"{instruction}\nKeep the meaning, numbers, links and list layout exactly. "
                       "Output only the rewritten message."),

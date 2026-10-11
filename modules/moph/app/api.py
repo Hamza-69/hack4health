@@ -115,3 +115,40 @@ async def list_searches(session: Session, empty_only: bool = False) -> list[Sear
     if empty_only:
         query = query.where(SearchLog.results == 0)
     return [SearchOut.model_validate(s, from_attributes=True) for s in await session.scalars(query)]
+
+
+TOPICS = {
+    "search_services": "Services and how to apply",
+    "get_service": "Services and how to apply",
+    "search_ministry_site": "Coverage and announcements",
+    "lookup_drug": "Medicines and prices",
+    "find_facilities": "Hospitals, centres and pharmacies",
+}
+
+
+@module.api.get("/insights")
+async def insights(session: Session, days: int = 7) -> dict:
+    """What people asked in the last `days`: by topic, the most repeated questions, and the ones
+    the ministry's data could not answer. Built from the anonymous search log."""
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+    rows = list(await session.scalars(select(SearchLog).where(SearchLog.created_at >= since)))
+    by_topic: dict[str, int] = {}
+    repeated: dict[str, dict] = {}
+    for s in rows:
+        topic = TOPICS.get(s.tool, s.tool.replace("_", " "))
+        by_topic[topic] = by_topic.get(topic, 0) + 1
+        key = " ".join(s.query.lower().split())
+        entry = repeated.setdefault(key, {"query": s.query, "topic": topic, "count": 0, "found": 0})
+        entry["count"] += 1
+        entry["found"] += s.results > 0
+    not_found = [e for e in repeated.values() if e["found"] == 0]
+    open_gaps = await session.scalar(select(func.count()).select_from(Gap).where(Gap.status == "open"))
+    return {
+        "days": days,
+        "total": len(rows),
+        "answered_share": round(sum(s.results > 0 for s in rows) / len(rows), 2) if rows else None,
+        "open_unanswered": open_gaps,
+        "by_topic": sorted(({"topic": t, "count": c} for t, c in by_topic.items()), key=lambda t: -t["count"]),
+        "top": sorted(repeated.values(), key=lambda e: (-e["count"], e["query"]))[:10],
+        "not_found": sorted(not_found, key=lambda e: -e["count"])[:10],
+    }
