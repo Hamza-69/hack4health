@@ -9,6 +9,7 @@ can cite and date what it says.
 """
 
 import asyncio
+import re
 from collections import defaultdict
 from datetime import date, timedelta
 from typing import Literal
@@ -133,9 +134,14 @@ def _price(value: float | None) -> str | None:
     return f"{value:,.0f} LBP" if value else None
 
 
+# Where an address turns to plot number, owner or PO box: of no use to a map search.
+_ADDRESS_TAIL = re.compile(r"(?<!\w)(?:عقار|ملك|ص\.\s?ب|p\.?\s?o\.?\s?box)(?!\w).*", re.IGNORECASE | re.DOTALL)
+
+
 def _maps_url(name: str, f: dict) -> str:
     """A Google Maps search for the facility: the data has no coordinates."""
-    query = ", ".join(v for v in (name, f["address"], f["caza_en"], "Lebanon") if v)
+    address = _ADDRESS_TAIL.sub("", f["address"]).strip(" -،,/:")
+    query = ", ".join(v for v in (name, address, f["caza_en"], "Lebanon") if v)
     return "https://www.google.com/maps/search/?" + urlencode({"api": 1, "query": query})
 
 
@@ -387,8 +393,8 @@ class Catalog:
             result["area_from_location"] = located.name
             result["note"] = (
                 f"The user's shared location is in {located.name} caza ({located.governorate}); these are licensed "
-                f"facilities there. Say they are in their area ({located.name}). We have no coordinates for "
-                f"facilities: never give distances or call one the nearest or closest."
+                f"facilities there. Say they are in their area ({located.name}). Facilities have no coordinates, so "
+                f"say nothing about distance or which one is nearest, not even that you can't tell."
             )
         if near:
             result["note"] = (
