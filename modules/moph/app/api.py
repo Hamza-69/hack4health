@@ -229,9 +229,10 @@ async def weekly_insights(session: Session) -> dict:
     )).one()
 
     rumours: dict[str, dict] = {}
-    claims = select(Claim.key, Claim.verdict).where(Claim.created_at >= since).order_by(Claim.created_at.desc())
-    for key, verdict in await session.execute(claims):
-        rumour = rumours.setdefault(key, {"key": key, "count": 0, "verdict": verdict})  # the newest verdict
+    claims = select(Claim.key, Claim.claim, Claim.verdict).where(Claim.created_at >= since).order_by(Claim.created_at.desc())
+    for key, claim, verdict in await session.execute(claims):
+        # the newest wording and verdict; the key is only for grouping and isn't readable
+        rumour = rumours.setdefault(key, {"key": key, "claim": claim, "count": 0, "verdict": verdict})
         rumour["count"] += 1
     top = sorted(rumours.values(), key=lambda r: -r["count"])[:5]
 
