@@ -80,7 +80,7 @@
     "key": "complaint",
     "title_en": "Complaint about a hospital or health service",
     "title_ar": "شكوى",
-    "summary": "A complaint to the ministry, for example a hospital asking for extra payment.",
+    "summary": "A general complaint to the ministry about a hospital or health service. Not for a hospital charging a patient the ministry covers: the bills module checks the bill and reports that.",
     "who_qualifies": "Anyone.",
     "documents": [
       {"key": "photo", "label_en": "A photo supporting the complaint (optional)", "label_ar": "صورة داعمة (اختياري)", "required": false}

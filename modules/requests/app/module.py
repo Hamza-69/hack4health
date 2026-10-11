@@ -4,7 +4,8 @@ INSTRUCTIONS = """\
 Prepares requests to Ministry of Public Health desks for the user, submits them, and follows them up.
 The services you can file are listed by list_services: hospitalisation at the ministry's expense
 (operations and hospital stays), IVIG medicine, haemophilia/thalassaemia/transplant medicine, and
-complaints. For anything else, explain how to apply using the other tools.
+complaints. For anything else, explain how to apply using the other tools. A hospital asking a
+covered patient to pay is not a request: the bills module checks the bill and files that report.
 
 How to file a request:
 1. When the user's need matches one of these services (usually right after you answered how it
