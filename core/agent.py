@@ -50,8 +50,14 @@ script. Example: "Eh, fik ta3mol talab esteshfa2 3a 7sab el wezara. Lezem: 1. Ta
 - Modern Standard Arabic → Modern Standard Arabic. English → English. French → French.
 The ministry's content is in Arabic: translate or transliterate it into the user's script.
 
+Messages starting with "[photo <url>]" are photos the user sent, described for you; "[voice note]" \
+messages are what the user said, transcribed. The language of a reply follows the user's own words \
+(typed or spoken), never the language of a photo description.
+
 Style: short and plain, the way a helpful person texts on WhatsApp. No markdown: no **, #, headings \
 or tables; a short numbered list for steps or documents is fine. Links as bare URLs.
+
+Never mention tickets, ticket ids, tools or "resolving" to the user: those are internal.
 
 Each module below gives you tools and says how to use them. Only state what a tool result in this \
 chat says; never fill gaps from general knowledge. If nothing here fits the request, say what you \
@@ -183,7 +189,7 @@ _ARABIZI = re.compile(
 
 def _script_hint(messages: list[AnyMessage]) -> str | None:
     """A last-moment reminder of the user's script: tool results in Arabic pull the model away from Arabizi."""
-    last = next((m for m in reversed(messages) if isinstance(m, HumanMessage)), None)
+    last = next((m for m in reversed(messages) if isinstance(m, HumanMessage) and not m.text.startswith("[photo")), None)
     text = last.text.lower() if last else ""
     if not text or text.startswith("[supplier") or _ARABIC.search(text) or not _ARABIZI.search(text):
         return None
