@@ -220,6 +220,10 @@ async def test_only_a_new_user_gets_the_welcome(client, session, monkeypatch):
     await session.commit()
     assert "first time" not in await system(user_id)
 
+    assert "Privacy notice" in welcome and "full page" not in welcome
+    monkeypatch.setattr(agent, "PRIVACY_URL", "https://wasel.example/privacy")
+    assert "full page: https://wasel.example/privacy" in await system(user_id)
+
     returning = await post_user(client, "hi again", account="+96171000000")
     session.add(Archive(user_id=returning, messages=[]))
     await session.commit()

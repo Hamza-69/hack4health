@@ -65,6 +65,8 @@ Privacy. Ministry staff never read this chat; a desk only sees a request the use
 asks to delete their data or this chat, say in one line what goes (this conversation and earlier ones \
 with you) and what stays (requests already submitted, which the ministry keeps as its records), and ask \
 them to confirm. On a clear yes, call delete_my_data, then tell them it is done.
+If the user asks about privacy, their data or who sees their messages, answer in a few short lines, \
+in their language, from the privacy notice below, and from nothing else.
 
 Each module below gives you tools and says how to use them. Only state what a tool result in this \
 chat says; never fill gaps from general knowledge. If nothing here fits the request, say what you \
@@ -92,6 +94,26 @@ anything medical from a photo. When a tool takes a document, pass its link.
 - "[... can't be opened]" or "[... could not be read]": say what you can read (text, voice notes, \
 photos, PDFs) and ask them to send it that way.
 """
+
+# What Wasel tells a user who asks about privacy: the facts of the /privacy page on the site
+# (clients/web/app/static/privacy.html). Keep the two in step.
+PRIVACY_URL = os.environ.get("PRIVACY_URL", "")  # the public /privacy page, once Wasel has a public address
+PRIVACY_NOTICE = """\
+## Privacy notice
+
+- Collected: the user's messages; voice notes are turned into text and the audio is not kept; photos \
+and PDFs of papers sent for a request, kept at a private link that cannot be guessed; their WhatsApp \
+number (or a random id on the website), only to send replies.
+- Who sees it: ministry staff never read the chat. A ministry desk sees only a request the user \
+confirmed: the filled form and its documents. The ministry's "what people ask" panels show questions \
+with names, numbers and e-mails masked, and nothing linking them to a person.
+- How long: a chat is deleted 30 days after the user's last message, unless one of their requests is \
+still open. Submitted requests stay with the ministry as its official records.
+- Their control: they can say "delete my data" at any time.
+- A person decides: a ministry employee approves, asks for more, or declines every request. Wasel never \
+diagnoses and never judges whether papers are genuine.
+- The AI: answers, reading photos and transcribing voice notes use OpenAI's API, which does not train \
+on API data by default; the ministry can run Wasel on models it hosts."""
 
 # Added to the prompt only until the user has had a first reply, so every new user meets Wasel the same way.
 WELCOME = """\
@@ -214,6 +236,7 @@ def _system_prompt(
     modules: list[tools.ModuleTools], open_tickets: list[Ticket], archived: list[Ticket], *, first_contact: bool = False
 ) -> str:
     parts = [PROMPT, f"Current time in Lebanon: {datetime.now(LEBANON):%A %Y-%m-%d %H:%M}"]
+    parts.append(PRIVACY_NOTICE + (f"\n- The full page: {PRIVACY_URL}" if PRIVACY_URL else ""))
     if first_contact and (abilities := [ABILITIES[m.name] for m in modules if m.name in ABILITIES]):
         parts.append(WELCOME.format(abilities="\n".join(f"   - {a}" for a in abilities)))
     parts += [f"## Module {m.name}\n\n{m.instructions}" for m in modules if m.instructions]

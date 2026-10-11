@@ -206,6 +206,7 @@ What a judge asks (what is collected, who sees it, where a human stays in the lo
 - **Delete my data**: the agent's `delete_my_data` tool, called after the user confirms. Once the reply is sent, the run clears the live chat, deletes the archives and blanks the resolution notes. Tickets stay: they are the ministry's records.
 - **Masking**: `h4h.privacy.mask_personal` hides e-mails, numbers of 7+ digits and introduced names in anything a module keeps for staff (moph: unanswered questions, searches, rumours).
 - Voice notes are transcribed and not kept; photos and PDFs are kept at unguessable links for the desk.
+- **In the chat**: asked about privacy, the agent answers from `PRIVACY_NOTICE` in `core/agent.py` (the page's facts). Set `PRIVACY_URL` to the public `/privacy` address once deployed and the agent adds the link.
 
 ## Data model
 
