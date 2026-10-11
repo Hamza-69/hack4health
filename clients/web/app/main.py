@@ -2,7 +2,7 @@
 
 Pages: / is the landing page, /chat the chat (also what the embeddable widget opens in an iframe,
 with ?embed=widget), /widget.js the one-line embed for any website, and /ministry a demo page that
-embeds it the way the ministry's site would. Every link between them is relative, so the site works
+embeds it the way the ministry's site would, and /privacy says what Wasel keeps and who sees it. Every link between them is relative, so the site works
 at the root locally and under /chat/ behind the proxy on Fly.
 
 The browser posts each message here. After DEBOUNCE_SECONDS without a new one, the batch goes to
@@ -100,6 +100,11 @@ def chat() -> FileResponse:
 @app.get("/ministry", include_in_schema=False)
 def ministry_demo() -> FileResponse:
     return _page("ministry.html")
+
+
+@app.get("/privacy", include_in_schema=False)
+def privacy() -> FileResponse:
+    return _page("privacy.html")
 
 
 @app.get("/widget.js", include_in_schema=False)

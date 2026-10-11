@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#0d5c48">
+<title>Your data · Wasel</title>
+<meta name="description" content="What Wasel collects, who sees it, how long it is kept, and where a person decides.">
+<link rel="icon" href="static/logo.svg" type="image/svg+xml">
+<script>
+  (() => {
+    const pick = new URLSearchParams(location.search).get("lang");
+    let saved = null;
+    try { saved = localStorage.getItem("wasel.lang"); } catch {}
+    const lang = ["ar", "en"].includes(pick) ? pick : ["ar", "en"].includes(saved) ? saved
+      : (navigator.language || "").toLowerCase().startsWith("ar") ? "ar" : "en";
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=Newsreader:opsz,wght@6..72,600&family=Noto+Naskh+Arabic:wght@700&display=swap">
+<style>
+/* The landing page's tokens (landing.html), in a long-document layout: one question per row. */
+:root {
+  --color-paper: oklch(97.4% 0.010 90);
+  --color-paper-2: oklch(94.6% 0.016 88);
+  --color-rule: oklch(87.5% 0.014 110);
+  --color-muted: oklch(45% 0.022 165);
+  --color-ink: oklch(23% 0.035 170);
+  --color-accent: oklch(43% 0.085 168);
+  --color-accent-soft: oklch(92.5% 0.035 165);
+  --font-display: "Newsreader", "Noto Naskh Arabic", ui-serif, Georgia, serif;
+  --font-body: "IBM Plex Sans Arabic", "Noto Sans Arabic", system-ui, sans-serif;
+  --gutter: clamp(16px, 4vw, 40px);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-paper: oklch(17% 0.014 170);
+    --color-paper-2: oklch(20% 0.016 170);
+    --color-rule: oklch(32% 0.018 170);
+    --color-muted: oklch(74% 0.018 160);
+    --color-ink: oklch(94% 0.010 100);
+    --color-accent: oklch(75% 0.110 165);
+    --color-accent-soft: oklch(28% 0.04 168);
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; overflow-x: clip; }
+body { background: var(--color-paper); color: var(--color-ink); font: 400 1.0625rem/1.65 var(--font-body); -webkit-font-smoothing: antialiased; }
+[lang="ar"] .en, [lang="en"] .ar { display: none !important; }
+a { color: var(--color-accent); text-underline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; border-radius: 4px; }
+.wrap { max-width: 880px; margin: 0 auto; padding-inline: var(--gutter); }
+.nav { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 24px; }
+.brand { display: flex; align-items: center; gap: 12px; color: var(--color-ink); text-decoration: none; }
+.brand img { width: 36px; height: 36px; border-radius: 10px; }
+.brand b { font-family: var(--font-display); font-size: 1.35rem; font-weight: 600; white-space: nowrap; }
+.lang { font: 500 0.875rem/1 var(--font-body); height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+        color: var(--color-ink); background: transparent; border: 1px solid var(--color-rule); }
+.lang:hover { border-color: var(--color-ink); }
+h1, h2 { font-family: var(--font-display); font-weight: 600; font-style: normal; margin: 0; overflow-wrap: anywhere; }
+:lang(ar) h1, :lang(ar) h2 { font-weight: 700; }
+h1 { font-size: clamp(2.1rem, 1.4rem + 2.6vw, 3.1rem); line-height: 1.08; letter-spacing: -0.015em; margin-top: 24px; }
+:lang(ar) h1 { line-height: 1.35; letter-spacing: 0; }
+.lede { font-size: 1.2rem; color: var(--color-muted); margin: 16px 0 40px; max-width: 38em; }
+dl { margin: 0; border-top: 1px solid var(--color-rule); }
+.row { display: grid; grid-template-columns: minmax(0, 13rem) minmax(0, 1fr); gap: 24px; padding: 24px 0; border-bottom: 1px solid var(--color-rule); }
+dt { font-family: var(--font-display); font-weight: 600; font-size: 1.3rem; line-height: 1.25; }
+:lang(ar) dt { font-weight: 700; line-height: 1.5; }
+dd { margin: 0; }
+dd p { margin: 0 0 10px; }
+dd ul { margin: 0; padding-inline-start: 20px; }
+dd li { margin-bottom: 6px; }
+.callout { margin: 32px 0 8px; padding: 18px 20px; border-radius: 14px; background: var(--color-accent-soft); }
+.callout b { display: block; margin-bottom: 4px; }
+code { font-size: 0.95em; background: var(--color-paper-2); padding: 1px 6px; border-radius: 6px; }
+footer { margin-top: 48px; padding-block: 24px 48px; border-top: 1px solid var(--color-rule); color: var(--color-muted); font-size: 0.875rem; }
+@media (max-width: 700px) { .row { grid-template-columns: minmax(0, 1fr); gap: 8px; } }
+</style>
+</head>
+<body>
+<header class="wrap nav">
+  <a class="brand" href="./" aria-label="Wasel"><img src="static/logo.svg" alt="" width="36" height="36"><b>Wasel · واصل</b></a>
+  <button class="lang" type="button" id="lang"><span class="en" lang="ar">العربية</span><span class="ar" lang="en">English</span></button>
+</header>
+
+<main class="wrap">
+  <h1><span class="en">Your data with Wasel</span><span class="ar">معلوماتك مع واصل</span></h1>
+  <p class="lede en">What Wasel collects, who sees it, how long it is kept, and where a person decides. In plain words, and only what the system actually does.</p>
+  <p class="lede ar">شو بيجمع واصل، مين بيشوفه، قديش بيضل محفوظ، ووين بيقرّر إنسان. بكلام بسيط، وبس اللي النظام عم يعمله فعلاً.</p>
+
+  <dl>
+    <div class="row">
+      <dt><span class="en">What is collected</span><span class="ar">شو منجمع</span></dt>
+      <dd>
+        <ul class="en">
+          <li>Your messages to Wasel.</li>
+          <li>Voice notes are turned into text; the audio itself is not kept.</li>
+          <li>Photos and PDFs of papers you send for a request, kept at a private link that cannot be guessed or listed.</li>
+          <li>Your WhatsApp number, or a random id on the website, only to send you the replies.</li>
+        </ul>
+        <ul class="ar">
+          <li>رسائلك لواصل.</li>
+          <li>الرسائل الصوتية بتتحوّل لنص، والتسجيل نفسه ما بينحفظ.</li>
+          <li>صور وملفات PDF للأوراق اللي بتبعتها لطلب، محفوظة على رابط خاص ما حدا بيقدر يخمّنه أو يلاقيه بلائحة.</li>
+          <li>رقم الواتساب تبعك، أو رقم عشوائي على الموقع، بس لنبعتلك الأجوبة.</li>
+        </ul>
+      </dd>
+    </div>
+    <div class="row">
+      <dt><span class="en">Who sees it</span><span class="ar">مين بيشوفه</span></dt>
+      <dd>
+        <ul class="en">
+          <li><b>Ministry staff never read your chat.</b> The admin panel has no screen that shows conversations.</li>
+          <li>A ministry desk sees only a request you confirmed: the filled form and the documents you sent for it.</li>
+          <li>Each desk opens only its own service; signed tokens enforce it.</li>
+          <li>The "what people ask" panels show questions with names, phone numbers, IDs and emails masked, and nothing that links a question to a person.</li>
+        </ul>
+        <ul class="ar">
+          <li><b>موظفين الوزارة ما بيقروا محادثتك.</b> لوحة الإدارة ما فيها أي شاشة بتعرض المحادثات.</li>
+          <li>مكتب الوزارة بيشوف بس الطلب اللي إنت أكّدته: الاستمارة معبّاية والمستندات اللي بعتّها إلها.</li>
+          <li>كل مكتب بيفتح بس خدمته، ورموز موقّعة بتفرض هالشي.</li>
+          <li>لوحات «شو عم يسألوا الناس» بتعرض الأسئلة مع إخفاء الأسماء وأرقام الهاتف والهوية والإيميل، وبدون أي شي بيربط السؤال بشخص.</li>
+        </ul>
+      </dd>
+    </div>
+    <div class="row">
+      <dt><span class="en">How long it is kept</span><span class="ar">قديش بيضل محفوظ</span></dt>
+      <dd>
+        <ul class="en">
+          <li>A conversation is deleted 30 days after your last message, unless one of your requests is still open.</li>
+          <li>Closed conversations are deleted 30 days after they close.</li>
+          <li>Requests you submitted stay with the ministry as its official records, like a paper file at the desk.</li>
+        </ul>
+        <ul class="ar">
+          <li>المحادثة بتنمحى بعد 30 يوم من آخر رسالة، إلا إذا عندك طلب بعدو مفتوح.</li>
+          <li>المحادثات المسكّرة بتنمحى بعد 30 يوم من تسكيرها.</li>
+          <li>الطلبات اللي قدّمتها بتضل عند الوزارة كسجلات رسمية، متل الملف الورقي عالمكتب.</li>
+        </ul>
+      </dd>
+    </div>
+    <div class="row">
+      <dt><span class="en">Your control</span><span class="ar">القرار إلك</span></dt>
+      <dd>
+        <p class="en">Say <b>"delete my data"</b> at any time. Wasel tells you what will be erased, asks you to confirm once, and then deletes this conversation and the earlier ones. Requests you already submitted stay with the ministry.</p>
+        <p class="ar">قول <b>«امسحلي معلوماتي»</b> بأي وقت. واصل بيقلّك شو رح ينمحى، بيطلب تأكيد مرة وحدة، وبعدين بيمحي هالمحادثة واللي قبلها. الطلبات اللي قدّمتها بتضل عند الوزارة.</p>
+      </dd>
+    </div>
+    <div class="row">
+      <dt><span class="en">Where a person decides</span><span class="ar">وين بيقرّر إنسان</span></dt>
+      <dd>
+        <ul class="en">
+          <li>A ministry employee approves, asks for more, or declines every request. Wasel prepares it; it never decides.</li>
+          <li>Wasel never gives a medical diagnosis and never judges whether papers are genuine: the desk does.</li>
+          <li>In an emergency, Wasel points to the Red Cross on 140.</li>
+        </ul>
+        <ul class="ar">
+          <li>موظف بالوزارة بيوافق أو بيطلب أوراق إضافية أو بيرفض كل طلب. واصل بيحضّر الطلب، وما بيقرّر.</li>
+          <li>واصل ما بيعطي تشخيص طبي وما بيحكم إذا الأوراق صحيحة: المكتب بيعمل هالشي.</li>
+          <li>بحالات الطوارئ، واصل بيوجّهك للصليب الأحمر على 140.</li>
+        </ul>
+      </dd>
+    </div>
+    <div class="row">
+      <dt><span class="en">Where the AI runs</span><span class="ar">وين بيشتغل الذكاء الاصطناعي</span></dt>
+      <dd>
+        <p class="en">Today, answers, reading photos and transcribing voice notes use OpenAI's API, which does not train its models on API data by default. Each model is a configuration setting, so the ministry can point Wasel at models it hosts on its own servers.</p>
+        <p class="ar">اليوم، الأجوبة وقراءة الصور وتحويل الرسائل الصوتية لنص بيستعملوا خدمة OpenAI، اللي ما بتدرّب نماذجها على هالمعلومات بشكل افتراضي. كل نموذج هو إعداد، فالوزارة فيها تشغّل واصل على نماذج مستضافة على سيرفراتها.</p>
+      </dd>
+    </div>
+    <div class="row">
+      <dt><span class="en">How it is protected</span><span class="ar">كيف هو محمي</span></dt>
+      <dd>
+        <ul class="en">
+          <li>Every part of the system proves who it is with signed tokens (EdDSA); those that act for a user or a staff member expire within minutes, and a service can check tokens but never create them.</li>
+          <li>Each ministry service keeps its data in its own database schema, apart from the others and from the chats.</li>
+          <li>The AI never handles accounts: every tool call carries a token minted for that user, which the AI cannot see or change.</li>
+        </ul>
+        <ul class="ar">
+          <li>كل جزء من النظام بيثبت هويته برموز موقّعة (EdDSA)؛ الرموز اللي بتتصرّف باسم مستخدم أو موظف بتخلص صلاحيتها خلال دقائق، والخدمة بتقدر تتحقق من الرموز بس ما بتقدر تصنعها.</li>
+          <li>كل خدمة بالوزارة بتحفظ معلوماتها بقسم خاص فيها بقاعدة البيانات، منفصل عن غيرها وعن المحادثات.</li>
+          <li>الذكاء الاصطناعي ما بيتعامل مع الحسابات: كل استدعاء أداة معه رمز مصنوع لهالمستخدم، وما بيقدر يشوفه أو يغيّره.</li>
+        </ul>
+      </dd>
+    </div>
+  </dl>
+
+  <div class="callout">
+    <b class="en">In one line</b><b class="ar">بسطر واحد</b>
+    <span class="en">Your chat stays between you and Wasel; the ministry sees only the requests you choose to submit, and a person decides each one.</span>
+    <span class="ar">محادثتك بتضل بينك وبين واصل؛ الوزارة بتشوف بس الطلبات اللي بتختار تقدّمها، وإنسان بيقرّر بكل واحد منها.</span>
+  </div>
+</main>
+
+<footer class="wrap">
+  <span class="en"><a href="./">Back to Wasel</a> · A Hack for Health Lebanon 2026 project, not yet an official ministry service.</span>
+  <span class="ar"><a href="./">رجوع لواصل</a> · مشروع من Hack for Health Lebanon 2026، مش بعد خدمة رسمية من الوزارة.</span>
+</footer>
+
+<script>
+  document.getElementById("lang").addEventListener("click", () => {
+    const html = document.documentElement;
+    const lang = html.lang === "ar" ? "en" : "ar";
+    html.lang = lang;
+    html.dir = lang === "ar" ? "rtl" : "ltr";
+    try { localStorage.setItem("wasel.lang", lang); } catch {}
+  });
+</script>
+</body>
+</html>

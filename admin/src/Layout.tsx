@@ -6,7 +6,7 @@ import { useAuth } from "./auth";
 export type LayoutContext = { modules: Module[] };
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
-  `block rounded-md px-3 py-2 text-sm ${isActive ? "bg-gray-900 text-white" : "text-gray-700 hover:bg-gray-200"}`;
+  `block rounded-md px-3 py-2 text-sm ${isActive ? "bg-[#0d5c48] text-white" : "text-gray-700 hover:bg-gray-200"}`;
 
 export default function Layout() {
   const { admin, logout } = useAuth();
@@ -19,7 +19,13 @@ export default function Layout() {
   return (
     <div className="flex h-screen">
       <aside className="flex w-60 shrink-0 flex-col border-r border-gray-200 bg-gray-100 p-4">
-        <div className="mb-6 px-3"><div className="font-semibold">Wasel · واصل</div><div className="text-xs text-gray-500">Ministry of Public Health</div></div>
+        <div className="mb-6 flex items-center gap-3 px-3">
+          <img src="/favicon.svg" alt="" className="h-9 w-9 rounded-[10px]" />
+          <div>
+            <div className="font-semibold">Wasel · واصل</div>
+            <div className="text-xs text-gray-500">وزارة الصحة العامة · Ministry of Public Health</div>
+          </div>
+        </div>
         <nav className="flex-1 space-y-1">
           <NavLink to="/tickets" className={linkClass}>
             Tickets
@@ -33,6 +39,9 @@ export default function Layout() {
             </NavLink>
           ))}
         </nav>
+        <p className="mb-3 px-3 text-xs leading-snug text-gray-500">
+          Staff see requests and anonymous questions, never patients' chats.
+        </p>
         <div className="border-t border-gray-200 px-3 pt-4 text-sm">
           <div className="truncate">{admin?.email}</div>
           <div className="text-gray-500">{admin?.role}</div>

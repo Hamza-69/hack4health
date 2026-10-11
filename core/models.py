@@ -37,6 +37,10 @@ class User(Base):
         ForeignKey("tickets.id", use_alter=True, ondelete="SET NULL")
     )
     agent_running_since: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # The user's last message: chats idle longer than the retention period are deleted (core/privacy.py).
+    last_active_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

@@ -8,6 +8,7 @@ rumours the agent checks.
 from typing import Annotated, Literal
 
 from h4h import ToolError
+from h4h.privacy import mask_personal
 from mcp.server.mcpserver import Context
 from pydantic import Field
 from sqlalchemy import select
@@ -49,7 +50,7 @@ async def _search_answer(catalog, tool: str, query: str, results: list) -> dict:
 
 async def _log(tool: str, query: str, results: int) -> None:
     async with module.db() as session:
-        session.add(SearchLog(tool=tool, query=query[:500], results=results))
+        session.add(SearchLog(tool=tool, query=mask_personal(query)[:500], results=results))
         await session.commit()
 
 
@@ -152,7 +153,7 @@ async def report_unanswered(
     Call it whenever you tell the user you do not have the information."""
     await module.user(ctx)
     async with module.db() as session:
-        session.add(Gap(question=question[:2000], reason=reason[:1000]))
+        session.add(Gap(question=mask_personal(question)[:2000], reason=mask_personal(reason)[:1000]))
         await session.commit()
     return "recorded"
 
@@ -172,6 +173,7 @@ async def report_claim(
     rumours early. Call it after every check."""
     await module.user(ctx)
     async with module.db() as session:
+        claim = mask_personal(claim)
         known = await session.scalars(select(Claim.key).distinct())
         session.add(
             Claim(
