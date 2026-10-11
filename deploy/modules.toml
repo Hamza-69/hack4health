@@ -10,3 +10,8 @@ ui_url = "PUBLIC_URL/modules/moph/ui/"
 title = "Ministry Inbox"
 url = "http://localhost:8003"
 ui_url = "PUBLIC_URL/modules/requests/ui/"
+
+[bills]
+title = "Hospital Bills"
+url = "http://localhost:8004"
+ui_url = "PUBLIC_URL/modules/bills/ui/"
