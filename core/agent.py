@@ -29,7 +29,7 @@ from sqlalchemy import func, select
 from core import db, tools
 from core.models import Ticket, TicketStatus
 
-MODEL = os.environ.get("AGENT_MODEL", "openai:gpt-5.6-luna")  # any init_chat_model "provider:model"
+MODEL = os.environ.get("AGENT_MODEL", "openai:gpt-6.1-sol")  # any init_chat_model "provider:model"
 MODEL_TIMEOUT = 120  # seconds per model call
 TOOL_TIMEOUT = 60  # seconds per tool call
 MAX_STEPS = 25  # model and tool steps in one turn

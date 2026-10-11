@@ -130,7 +130,7 @@ The agent reaches every module's tools through `core/tools.py`: tool names are `
 
 ## Agent
 
-A LangGraph loop (`core/agent.py`): the model answers or calls tools until it answers without one. The model is `AGENT_MODEL` (any `init_chat_model` string, default `openai:gpt-5.6-luna`; OpenAI models go through the Responses API) and needs `OPENAI_API_KEY` in the root `.env`.
+A LangGraph loop (`core/agent.py`): the model answers or calls tools until it answers without one. The model is `AGENT_MODEL` (any `init_chat_model` string, default `openai:gpt-6.1-sol`; OpenAI models go through the Responses API) and needs `OPENAI_API_KEY` in the root `.env`.
 
 - The system prompt is built each turn: base rules, each module's MCP `instructions`, the user's open tickets, and the resolutions of the last few archived tickets.
 - Tools: every module's tools plus the core's own `resolve_ticket`, which closes one of this user's `awaiting_user` tickets with a `resolution`.
