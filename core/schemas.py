@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from core.models import AdminRole, TicketStatus
 
@@ -72,3 +72,13 @@ class TicketPatch(BaseModel):
 
 class NotifyIn(BaseModel):
     message: str
+
+
+class MessagesIn(BaseModel):
+    account_id: str  # on the client's app: phone number, Telegram chat id or web uuid
+    messages: list[str] = Field(min_length=1)  # debounced by the client, oldest first
+
+
+class MessagesOut(BaseModel):
+    user_id: uuid.UUID
+    queued: bool  # the user's agent was already running; it picks the messages up at its next step

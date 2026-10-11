@@ -27,6 +27,12 @@ class User(Base):
     messages: Mapped[list[dict]] = mapped_column(
         Messages, default=list, server_default=text("'[]'::jsonb")
     )
+    # The live queue: messages that arrived while the agent was running, poured in at its next step.
+    queue: Mapped[list[dict]] = mapped_column(
+        Messages, default=list, server_default=text("'[]'::jsonb")
+    )
+    app: Mapped[str | None]  # wa | tg | web: the client replies go through
+    address: Mapped[str | None]  # account id on that app, normalized (E.164 phone, chat id, web uuid)
     current_ticket_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("tickets.id", use_alter=True, ondelete="SET NULL")
     )

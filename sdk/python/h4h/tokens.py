@@ -17,6 +17,8 @@ class TokenType(enum.StrEnum):
     MODULE = "module"  # module -> core (module API)
     USER = "user"  # core -> module MCP server, in _meta
     ADMIN = "admin"  # admin panel -> module UI -> module backend
+    CLIENT = "client"  # chat client -> core (agent API)
+    REPLY = "reply"  # core -> chat client, with each reply to send
 
 
 def verify(token: str, key, *, audience: str, typ: TokenType) -> dict:

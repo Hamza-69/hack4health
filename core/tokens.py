@@ -16,6 +16,7 @@ from h4h.tokens import ALGORITHM, CORE_AUDIENCE, ISSUER, TokenType, verify
 USER_TOKEN_TTL = 5 * 60
 ADMIN_TOKEN_TTL = 15 * 60
 SESSION_TOKEN_TTL = 12 * 60 * 60
+REPLY_TOKEN_TTL = 5 * 60
 
 
 def keys_dir() -> Path:
@@ -87,11 +88,21 @@ def module_token(module: str) -> str:
     return mint(TokenType.MODULE, module, CORE_AUDIENCE, None)
 
 
+def client_token(app: str) -> str:
+    """Long-lived. Revoke a client by removing it from clients.toml."""
+    return mint(TokenType.CLIENT, app, CORE_AUDIENCE, None)
+
+
+def reply_token(app: str) -> str:
+    """Sent with each reply so the client can check it comes from the core."""
+    return mint(TokenType.REPLY, app, f"client:{app}", REPLY_TOKEN_TTL)
+
+
 def verify_user_token(token: str, module: str) -> uuid.UUID:
     """A user token the core minted for `module`, handed back by that module as proof."""
     return uuid.UUID(verify(token, _public_key(), audience=module, typ=TokenType.USER)["sub"])
 
 
 def verify_core_token(token: str, typ: TokenType) -> dict:
-    """Verify a token addressed to the core (session or module token)."""
+    """Verify a token addressed to the core (session, module or client token)."""
     return verify(token, _public_key(), audience=CORE_AUDIENCE, typ=typ)

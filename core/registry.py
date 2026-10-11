@@ -1,4 +1,4 @@
-"""The module registry: modules.toml at the repo root. Read on every use, so edits apply live."""
+"""The registries: modules.toml and clients.toml at the repo root. Read on every use, so edits apply live."""
 
 import os
 import tomllib
@@ -37,3 +37,26 @@ def load_modules() -> dict[str, ModuleConfig]:
         )
         for name, entry in raw.items()
     }
+
+
+@dataclass(frozen=True)
+class ClientConfig:
+    app: str  # wa | tg | web
+    url: str  # the client's service; the core POSTs replies to /messages
+
+    @property
+    def messages_url(self) -> str:
+        return f"{self.url}/messages"
+
+
+def clients_config_path() -> Path:
+    return Path(os.environ.get("CLIENTS_CONFIG", "clients.toml"))
+
+
+def load_clients() -> dict[str, ClientConfig]:
+    path = clients_config_path()
+    if not path.exists():
+        return {}
+    with path.open("rb") as f:
+        raw = tomllib.load(f)
+    return {app: ClientConfig(app=app, url=entry["url"].rstrip("/")) for app, entry in raw.items()}
