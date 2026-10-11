@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import catalog, search_index
 from app.ingest import data_dir, ingest
-from app.models import Document, Drug, Facility, FreeMed, Gap, IngestRun, Page, SearchLog, Service
+from app.models import Claim, Document, Drug, Facility, FreeMed, Gap, IngestRun, Page, SearchLog, Service
 from app.module import module
 
 Session = Annotated[AsyncSession, Depends(module.session)]
@@ -97,6 +97,37 @@ async def update_gap(gap_id: int, body: GapUpdate, session: Session) -> GapOut:
     await session.commit()
     await session.refresh(gap)
     return GapOut.model_validate(gap, from_attributes=True)
+
+
+# Rumours
+
+
+class ClaimOut(BaseModel):
+    """Near-duplicate checks of one claim, with the newest wording, verdict and source."""
+
+    claim: str
+    count: int
+    verdict: str
+    source_url: str | None
+    source_date: str | None
+    first_seen: datetime
+    last_seen: datetime
+
+
+@module.api.get("/claims")
+async def list_claims(session: Session) -> list[ClaimOut]:
+    """Forwarded messages and rumours the agent checked, grouped by claim, most recently seen first."""
+    groups: dict[str, ClaimOut] = {}
+    for c in await session.scalars(select(Claim).order_by(Claim.created_at.desc()).limit(5000)):
+        if group := groups.get(c.key):
+            group.count += 1
+            group.first_seen = c.created_at
+        else:
+            groups[c.key] = ClaimOut(
+                claim=c.claim, count=1, verdict=c.verdict, source_url=c.source_url, source_date=c.source_date,
+                first_seen=c.created_at, last_seen=c.created_at,
+            )
+    return list(groups.values())[:200]
 
 
 # Searches

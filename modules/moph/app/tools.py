@@ -1,19 +1,22 @@
 """MCP tools the agent calls to answer questions about the Ministry of Public Health.
 
 Every result says whether anything was found and carries official source links. Searches are
-logged anonymously (tool, query, result count) so admins can see what people ask.
+logged anonymously (tool, query, result count) so admins can see what people ask, and so are the
+rumours the agent checks.
 """
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 from h4h import ToolError
 from mcp.server.mcpserver import Context
 from pydantic import Field
+from sqlalchemy import select
 
 from app.catalog import Catalog, FacilityType, get_catalog
-from app.models import Gap, SearchLog
+from app.models import Claim, Gap, SearchLog
 from app.module import module
 from app.search_index import SearchUnavailable
+from app.text import claim_key
 
 Query = Annotated[
     str,
@@ -143,5 +146,34 @@ async def report_unanswered(
     await module.user(ctx)
     async with module.db() as session:
         session.add(Gap(question=question[:2000], reason=reason[:1000]))
+        await session.commit()
+    return "recorded"
+
+
+@module.mcp.tool()
+async def report_claim(
+    claim: Annotated[str, Field(description="The claim as one short neutral sentence in Arabic, without personal details, e.g. 'الوزارة تغطي عمليات زرع الأعضاء'")],
+    verdict: Annotated[
+        Literal["confirmed", "contradicted", "not_found"],
+        Field(description="confirmed: a ministry statement says it; contradicted: a newer ministry statement says otherwise; not_found: the ministry has published nothing on it"),
+    ],
+    ctx: Context,
+    source_url: Annotated[str | None, Field(description="The official link you gave the user")] = None,
+    source_date: Annotated[str | None, Field(description="That statement's date, YYYY-MM-DD")] = None,
+) -> str:
+    """Record a forwarded message or rumour you checked, with your verdict, so the ministry sees
+    rumours early. Call it after every check."""
+    await module.user(ctx)
+    async with module.db() as session:
+        known = await session.scalars(select(Claim.key).distinct())
+        session.add(
+            Claim(
+                claim=claim[:2000],
+                key=claim_key(claim, known),
+                verdict=verdict,
+                source_url=source_url and source_url[:2000],
+                source_date=source_date and source_date[:40],
+            )
+        )
         await session.commit()
     return "recorded"

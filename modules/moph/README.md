@@ -26,6 +26,7 @@ The answering rules live in the MCP server instructions (`app/module.py`). The a
 | `find_facilities` | hospitals, PHC centres, pharmacies... by type, area, name |
 | `get_contacts` | hotlines |
 | `report_unanswered` | logs a question we could not answer, for the admin page |
+| `report_claim` | logs a forwarded message or rumour the agent checked, with its verdict and source; near-duplicates share a key (`app/text.py`) |
 
 Every result says `found`, carries official links and `data_as_of`. Searches always return the closest records, each marked `strong` or `weak`; `found` means at least one strong match. When nothing is found, the result also carries fallback contacts.
 
@@ -44,6 +45,7 @@ Drug names are matched in Latin letters, with typo tolerance.
 ## Admin side
 
 - **Overview**: data counts, last load, reload button, search stats
+- **Rumours**: claims people asked Wasel to check, with how often, the verdict and the official source
 - **Unanswered**: questions the agent could not answer
 - **Searches**: what the agent searched for, and which searches found nothing
 
