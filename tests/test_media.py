@@ -84,3 +84,18 @@ def test_wrong_script_ignores_links_and_bracketed_names():
     assert agent._wrong_script("latin", "أكيد. فيني حضّر الطلب، بس بحتاج منك تبعتلي صور هالمستندات")
     assert agent._wrong_script("arabic", "Sure, send me the medical report and the NSSF statement")
     assert agent._wrong_script("arabizi", "Eh, lezem ikhraj qaid (إخراج قيد)")
+
+
+def test_reading_is_one_line_of_fields_kind_first():
+    reading = media.Reading(
+        kind="civil registry extract", title_ar="إخراج قيد فردي", name="Ali Haddad", issuer="Department of Civil Status",
+        issued="2026-10-08", expires=None, stamped=True, signed=False,
+        details=[media.Detail(label="Father", value="Mahmoud"), media.Detail(label="date of birth", value="1961-03-14")],
+        readable=True, problems=None,
+    )
+    assert reading.line() == (
+        "civil registry extract (إخراج قيد فردي) | name: Ali Haddad | issued by: Department of Civil Status | "
+        "issued: 2026-10-08 | stamped: yes | signed: no | father: Mahmoud | date of birth: 1961-03-14"
+    )
+    blurry = reading.model_copy(update={"readable": False, "problems": "cut off at the bottom", "details": []})
+    assert blurry.line().endswith("| hard to read: cut off at the bottom")

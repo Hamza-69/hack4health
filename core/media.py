@@ -1,8 +1,8 @@
 """Media from chat clients, turned into messages the agent reads like any other:
 
     [voice note] <transcript>
-    [photo <link>] <one line on what it shows>
-    [document <link>] <one line on what it is>
+    [photo <link>] <what it is> | <field>: <value> | ...
+    [document <link>] <what it is> | <field>: <value> | ...
 
 Voice notes are transcribed and not kept. Photos and PDFs are kept in MEDIA_DIR and served at
 /media/<name>. The name is random, so only whoever holds the link can open the file: the agent,
@@ -17,11 +17,13 @@ from functools import cache
 from pathlib import Path
 
 from openai import AsyncOpenAI
+from pydantic import BaseModel, Field
 
 MEDIA_DIR = Path(os.environ.get("MEDIA_DIR", "media"))
 PUBLIC_URL = os.environ.get("CORE_PUBLIC_URL", "http://localhost:8000").rstrip("/")  # where links point
 TRANSCRIBE_MODEL = os.environ.get("TRANSCRIBE_MODEL", "gpt-4o-transcribe")
-VISION_MODEL = os.environ.get("VISION_MODEL", "gpt-5.4-mini")
+VISION_MODEL = os.environ.get("VISION_MODEL", "gpt-6-luna")
+VISION_EFFORT = os.environ.get("VISION_EFFORT", "none")  # reasoning effort; "" for models without reasoning
 MAX_BYTES = 20 * 1024 * 1024
 TIMEOUT = 60  # seconds per OpenAI call
 
@@ -38,15 +40,52 @@ TRANSCRIBE_PROMPT = (
 )
 DESCRIBE_PROMPT = """\
 A patient sent this to the Lebanese Ministry of Public Health's assistant, usually as part of a \
-request. Say in one line (at most 35 words) what it is.
-- A document: its type in English, judged from what is printed on it, not from who it is being sent \
-to, then the Arabic title if one is printed (e.g. "Lebanese ID card \
-(بطاقة هوية)", "civil registry extract (إخراج قيد فردي)", "medical report (تقرير طبي)", "NSSF \
-statement (إفادة الضمان)", "prescription"), whose it is if a name is printed, its issue date if one \
-is printed (not a date of birth), and whether it is stamped or signed. Say if it is unreadable, cut \
-off or blurry.
-- Anything else: what it shows, plainly, with no medical judgement.
-Write only the line."""
+request. Read it into the fields of the schema, from what is printed on it only; leave out what isn't \
+there rather than guess.
+- A document: name its type in English from what is printed on it, not from who it is being sent to \
+(e.g. "Lebanese ID card", "civil registry extract", "family civil registry extract", "medical report", \
+"NSSF statement", "prescription", "invoice"), with the Arabic title as printed. In `details`, add the \
+printed facts a ministry desk would need, at most 10, in English: e.g. father's and mother's names, \
+date and place of birth, registry number for civil records; diagnosis, procedure, hospital, doctor and \
+admission date for medical reports; who is or isn't covered for insurance statements; each medicine \
+with its strength for prescriptions. Dates as YYYY-MM-DD.
+- A medicine pack: its name, strength and form in `details`.
+- Anything else: what it shows, plainly. Never judge anything medical in a photo of a person."""
+
+
+class Detail(BaseModel):
+    label: str = Field(description="e.g. 'father', 'diagnosis', 'admission date'")
+    value: str
+
+
+class Reading(BaseModel):
+    """What a photo or PDF is, as data the agent and the ministry desk can use."""
+
+    kind: str = Field(description="What it is, in English, e.g. 'civil registry extract' or 'photo of a medicine box'")
+    title_ar: str | None = Field(description="The Arabic title as printed, if any")
+    name: str | None = Field(description="Whose document it is, as printed")
+    issuer: str | None = Field(description="Who issued it: ministry, hospital, doctor, NSSF...")
+    issued: str | None = Field(description="Issue date, YYYY-MM-DD; not a date of birth")
+    expires: str | None = Field(description="Expiry date, YYYY-MM-DD")
+    stamped: bool | None = Field(description="Carries an official stamp; null if not a document")
+    signed: bool | None = Field(description="Carries a signature; null if not a document")
+    details: list[Detail]
+    readable: bool = Field(description="Clear and complete enough to use")
+    problems: str | None = Field(description="Blurry, cut off, glare, a page missing...")
+
+    def line(self) -> str:
+        """One line the agent reads and the desk sees: the kind first, then field: value pairs."""
+        parts = [self.kind + (f" ({self.title_ar})" if self.title_ar else "")]
+        parts += [f"{label}: {value}" for label, value in (
+            ("name", self.name), ("issued by", self.issuer), ("issued", self.issued), ("expires", self.expires),
+        ) if value]
+        parts += [f"{label}: {'yes' if flag else 'no'}" for label, flag in (
+            ("stamped", self.stamped), ("signed", self.signed),
+        ) if flag is not None]
+        parts += [f"{d.label[:1].lower()}{d.label[1:]}: {d.value}" for d in self.details[:10]]
+        if not self.readable or self.problems:
+            parts.append(f"{'hard to read' if not self.readable else 'note'}: {self.problems or 'unclear'}")
+        return " | ".join(" ".join(p.split()) for p in parts)
 
 
 class MediaError(ValueError):
@@ -121,8 +160,11 @@ async def describe(data: bytes, content_type: str) -> str:
         if content_type in DOCUMENTS
         else {"type": "input_image", "image_url": url, "detail": "high"}
     )
-    response = await _openai().responses.create(
+    response = await _openai().responses.parse(
         model=VISION_MODEL,
         input=[{"role": "user", "content": [{"type": "input_text", "text": DESCRIBE_PROMPT}, part]}],
+        text_format=Reading,
+        **({"reasoning": {"effort": VISION_EFFORT}} if VISION_EFFORT else {}),
     )
-    return " ".join(response.output_text.split()) or "(could not tell what this is)"
+    reading = response.output_parsed
+    return reading.line() if reading else "(could not tell what this is)"

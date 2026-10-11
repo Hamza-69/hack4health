@@ -152,13 +152,13 @@ Clients turn what isn't text into text before it reaches the agent, through the 
 | The user sends | The agent gets | Kept? |
 |---|---|---|
 | voice note | `[voice note] <transcript>` (OpenAI `TRANSCRIBE_MODEL`, default `gpt-4o-transcribe`) | no |
-| photo (JPEG, PNG, WebP) | `[photo <link>] <one line on what it is>` (`VISION_MODEL`, default `gpt-5.4-mini`) | yes |
-| PDF | `[document <link>] <one line on what it is>` | yes |
+| photo (JPEG, PNG, WebP) | `[photo <link>] <what it is> \| <field>: <value> \| ...` (`VISION_MODEL`, default `gpt-6-luna` with reasoning effort `VISION_EFFORT=none`, about 3 s) | yes |
+| PDF | `[document <link>] <what it is> \| <field>: <value> \| ...` | yes |
 | location | `[location: <place or coordinates>]` (WhatsApp only, made by the client) | no |
 | video, other files, contacts | `[... can't be opened ...]`, so the agent asks for another way | no |
 
 - Links are `CORE_PUBLIC_URL/media/<random name>` (default `http://localhost:8000`). The name is the only key, so a module (the ministry's inbox) can show the photo by its link, and nobody can list or guess the files.
-- The description names the document type and whose it is, so the requests module can tell what is missing. It can be wrong, and the prompt says so.
+- A photo is read into fields (`Reading` in `core/media.py`): document type and Arabic title, whose it is, issuer, issue and expiry dates, stamped, signed, readable, and up to 10 printed details a desk needs (parents and registry number on civil records; diagnosis, procedure, hospital and admission date on medical reports; coverage on NSSF statements; medicines on prescriptions). The kind comes first, so the requests module matches photos to documents by it; the fields fill the request. They can be wrong, and the prompt says so.
 - A client holds its debounce until every upload in the batch is read, so the agent gets the user's messages together and in order.
 
 ## WhatsApp
