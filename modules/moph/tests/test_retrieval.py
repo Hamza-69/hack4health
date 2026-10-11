@@ -76,6 +76,14 @@ def test_unknown_area_says_so(catalog):
     assert result["total"] == 0 and result["unknown_area"] == "Atlantis"
 
 
+def test_facilities_near_a_shared_location(catalog):
+    result = catalog.find_facilities(type="any_hospital", lat=33.8963, lon=35.4826)  # Hamra
+    assert result["area_from_location"] == "Beirut" and result["total"] >= 1
+    assert all(f["caza"] == "Beirut" for f in result["facilities"])
+    assert all(f["maps_url"].startswith("https://www.google.com/maps/search/?api=1&query=") for f in result["facilities"])
+    assert catalog.find_facilities(lat=48.85, lon=2.35)["total"] == 0  # Paris
+
+
 # Search: any language, any phrasing.
 
 
