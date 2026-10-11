@@ -45,6 +45,7 @@ app.mount("/static", StaticFiles(directory=STATIC), name="static")
 jwks = jwt.PyJWKClient(f"{CORE_URL}/.well-known/jwks.json")
 
 pending: dict[str, list[str]] = defaultdict(list)  # messages waiting out the debounce
+greetings: dict[str, str] = {}  # the hello an embedded chat showed before the user's first message
 timers: dict[str, asyncio.Task] = {}
 reading: dict[str, int] = defaultdict(int)  # media uploads the core is still reading, per account
 streams: dict[str, set[asyncio.Queue]] = defaultdict(set)  # open event streams per account
@@ -54,6 +55,7 @@ held: dict[str, list[dict]] = defaultdict(list)  # replies for accounts with no 
 class SendIn(BaseModel):
     account_id: str
     text: str
+    greeting: str | None = None  # with the first message of an embedded chat: the hello it showed
 
 
 class ReplyIn(BaseModel):
@@ -109,14 +111,20 @@ def widget() -> FileResponse:
 async def send(body: SendIn) -> None:
     """One message from the browser. It waits out the debounce with any that follow it."""
     account_id = _account(body.account_id)
+    if body.greeting:
+        greetings[account_id] = body.greeting[:1000]
     pending[account_id].append(body.text)
     _arm(account_id)
 
 
 @app.post("/api/media")
-async def send_media(account_id: Annotated[str, Form()], file: UploadFile) -> MediaOut:
+async def send_media(
+    account_id: Annotated[str, Form()], file: UploadFile, greeting: Annotated[str | None, Form()] = None
+) -> MediaOut:
     """A voice note, photo or PDF from the browser. The core turns it into a message, which joins the debounce."""
     account_id = _account(account_id)
+    if greeting:
+        greetings[account_id] = greeting[:1000]
     if not CLIENT_TOKEN:
         raise HTTPException(503, "CLIENT_TOKEN is missing: run `uv run h4h init`.")
     reading[account_id] += 1
@@ -154,6 +162,7 @@ async def _flush_later(account_id: str) -> None:
         return  # a voice note or photo is still being read; it re-arms the timer when done
     # Taken before the first await, so a newer message starts a new batch instead of cancelling this one.
     texts = pending.pop(account_id, [])
+    greeting = greetings.pop(account_id, None)
     if not texts:
         return
     if not CLIENT_TOKEN:
@@ -164,7 +173,7 @@ async def _flush_later(account_id: str) -> None:
             response = await http.post(
                 f"{CORE_URL}/agent/messages",
                 headers={"Authorization": f"Bearer {CLIENT_TOKEN}"},
-                json={"account_id": account_id, "messages": texts},
+                json={"account_id": account_id, "messages": texts, "greeting": greeting},
             )
         response.raise_for_status()
     except httpx.HTTPStatusError as e:

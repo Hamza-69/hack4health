@@ -90,6 +90,8 @@
   .chips button:hover { border-color: var(--color-accent); }
   .chips button:active { background: var(--color-mine); }
   .fine { font-size: 12px !important; max-width: 380px; }
+  .starter { display: grid; gap: 10px; justify-items: start; }
+  .starter .chips { justify-content: flex-start; }
 
   .msg { max-width: min(82%, 560px); padding: 8px 12px 6px; border-radius: 14px; box-shadow: var(--shadow);
          white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -197,6 +199,7 @@ const TEXT = {
     newChat: "New chat", confirmNew: "Tap again to start over", close: "Close the chat",
     attach: "Send a photo or PDF", send: "Send", record: "Record a voice note", stopRecord: "Send the voice note",
     cancel: "Cancel", placeholder: "Ask about ministry services…", typing: "Wasel is typing",
+    greeting: "Hi, I'm Wasel, the assistant for the Ministry of Public Health's services. Ask me about services and how to apply, what the ministry covers, medicine prices, or hospitals and health centres, and I can prepare some requests with you. How can I help you today?",
     welcomeTitle: "Ask about the Ministry of Public Health",
     welcomeBody: "Services and how to apply, what the ministry covers, medicine prices, hospitals and health centres. Write in Arabic, English or Arabizi, or send a voice note.",
     fine: "Answers come from moph.gov.lb. Wasel never gives a diagnosis.",
@@ -220,6 +223,7 @@ const TEXT = {
     newChat: "محادثة جديدة", confirmNew: "اضغط مرة تانية لتبدأ من جديد", close: "سكّر المحادثة",
     attach: "ابعت صورة أو PDF", send: "إرسال", record: "سجّل رسالة صوتية", stopRecord: "ابعت الرسالة الصوتية",
     cancel: "إلغاء", placeholder: "اسأل عن خدمات الوزارة…", typing: "واصل عم يكتب",
+    greeting: "أهلا، أنا واصل، مساعد خدمات وزارة الصحة العامة. اسألني عن الخدمات وكيف تقدّم عليها، شو بتغطّي الوزارة، أسعار الأدوية، أو المستشفيات والمراكز الصحية، وفيني حضّر معك بعض الطلبات. كيف فيني ساعدك اليوم؟",
     welcomeTitle: "اسأل عن وزارة الصحة العامة",
     welcomeBody: "الخدمات وكيف تقدّم، شو بتغطّي الوزارة، أسعار الأدوية، المستشفيات والمراكز الصحية. اكتب بالعربي أو الإنكليزي أو بالأحرف اللاتينية، أو ابعت رسالة صوتية.",
     fine: "الأجوبة من موقع الوزارة moph.gov.lb. واصل ما بيعطي تشخيص طبي.",
@@ -348,16 +352,25 @@ function setTyping(on) {
   render();
 }
 
+// Embedded, the chat opens on Wasel's hello. The first message keeps it in the chat and sends it along,
+// so the core records it as Wasel's opening line and the agent doesn't introduce itself a second time.
+function opening() {
+  if (!EMBED || chat.length) return null;
+  add({ who: "agent", text: t.greeting });
+  return t.greeting;
+}
+
 function send(text) {
   text = text.trim();
   if (!text) return;
+  const greeting = opening();
   add({ who: "me", text, state: "pending" });
   enqueue(async () => {
     try {
       const response = await fetch("api/send", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ account_id: account, text }),
+        body: JSON.stringify({ account_id: account, text, ...(greeting && { greeting }) }),
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
     } catch (e) {
@@ -371,6 +384,7 @@ function send(text) {
 // A photo, PDF or voice note. The core reads it (transcript or one-line description) and keeps
 // photos and PDFs at a link, which replaces the local preview once it is back.
 function sendFile(file, kind) {
+  const greeting = opening();
   const entry = add({
     who: "me", kind, text: "", name: file.name, state: "reading",
     src: kind === "photo" ? URL.createObjectURL(file) : null,
@@ -379,6 +393,7 @@ function sendFile(file, kind) {
     const form = new FormData();
     form.append("account_id", account);
     form.append("file", file, file.name || kind);
+    if (greeting) form.append("greeting", greeting);
     try {
       const response = await fetch("api/media", { method: "POST", body: form });
       const body = await response.json().catch(() => ({}));
@@ -513,12 +528,28 @@ function welcome() {
   return box;
 }
 
+function starter() {
+  const box = document.createElement("div");
+  box.className = "starter";
+  const hello = Object.assign(document.createElement("div"), { className: "msg agent", dir: "auto" });
+  hello.append(t.greeting);
+  const chips = document.createElement("div");
+  chips.className = "chips";
+  for (const s of t.suggestions.slice(1)) {  // the first one asks what Wasel can do, which the hello answers
+    const b = Object.assign(document.createElement("button"), { type: "button", dir: "auto", textContent: s });
+    b.onclick = () => send(s);
+    chips.append(b);
+  }
+  box.append(hello, chips);  // the line under the composer already says where answers come from
+  return box;
+}
+
 const TICKS = { pending: "🕓", delivered: "✓✓" };
 
 function render() {
   list.replaceChildren();
   if (chat.length === 0 && !typing) {
-    list.append(welcome());
+    list.append(EMBED ? starter() : welcome());
     return;
   }
   let previous = null;
