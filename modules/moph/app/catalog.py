@@ -49,12 +49,37 @@ FREE_LISTS = {
 }
 
 HOTLINES = [
-    {"contact": "1214: Ministry of Public Health hotline, also for cancer and intractable-disease medicines",
-     "source_url": "https://www.moph.gov.lb/ar/Media/view/82895"},
-    {"contact": "1787: questions and complaints about hospital care, e.g. a hospital asking for extra payment (working hours)",
+    {"contact": "1214: Ministry of Public Health hotline and complaints office (info@moph.gov.lb), "
+                "also for cancer and intractable-disease medicines",
+     "source_url": "https://www.moph.gov.lb/ar/contact"},
+    {"contact": "1787: questions about the ministry's emergency and hospitalisation cover (working hours); "
+                "hospitalisation for displaced people",
      "source_url": "https://www.moph.gov.lb/ar/Media/view/85973"},
+    {"contact": "01/832700: hotline for patient admission to hospitals",
+     "source_url": "https://www.moph.gov.lb/ar/complaints"},
     {"contact": "1564: mental health support line", "source_url": "https://www.moph.gov.lb/ar/Media/view/82829"},
 ]
+
+# Common spellings (English, French, Arabizi, cities) of the Facility Locator's areas.
+_AREA_ALIASES = {
+    "Saida": ["sidon", "saïda", "sayda", "saida"],
+    "Sour": ["tyre", "tyr", "sur", "sour"],
+    "Tripoli": ["trablos", "trablous", "trabulus", "tarablus", "tripoli"],
+    "Beirut": ["bayrut", "beyrouth", "beyrut", "bayrouth", "beirut"],
+    "Zahle": ["zahleh", "zahlé", "zahle"],
+    "Jbeil": ["byblos", "jbail", "jbeil"],
+    "El Nabatieh": ["nabatieh", "nabatiye", "nabatiyeh", "nabatiyé", "nabatiya"],
+    "El Meten": ["metn", "matn", "meten", "el metn"],
+    "El Koura": ["koura"],
+    "El Batroun": ["batroun"],
+    "Kesrouane": ["keserwan", "kesrouan", "kesrwan", "kisrawan", "jounieh", "jounie", "جونيه"],
+    "Baalbek": ["baalbeck", "baalbek"],
+    "Chouf": ["shouf", "chouf"],
+    "Marjaayoun": ["marjayoun", "marjeyoun"],
+    "El Minieh-Dennie": ["minieh", "minyeh", "dennieh", "dinnieh"],
+    "Baabda": ["dahieh", "dahiyeh", "dahye", "dahiye", "الضاحيه"],
+}
+AREA_ALIASES = {normalize(alias): area for area, aliases in _AREA_ALIASES.items() for alias in aliases}
 
 STRONG_SIMILARITY = 0.45  # cosine similarity of a "strong" match with text-embedding-3-large
 RECENT_DAYS = 548  # site results from the last 18 months rank a little higher: rules change
@@ -216,6 +241,9 @@ class Catalog:
         q = normalize(name).strip()
         if not q:
             return {"drugs": [], "free_lists": []}
+        if is_arabic(q):
+            return {"drugs": [], "free_lists": [],
+                    "note": "drug names are stored in Latin letters: retry with the Latin spelling, e.g. بنادول → panadol"}
         scores: dict[int, float] = {}
         for i, (brand, ingredients) in enumerate(zip(self._brands, self._ingredients)):
             if brand == q:
@@ -230,11 +258,18 @@ class Catalog:
         if len(q) >= 4:
             for _, score, i in process.extract(q, self._brands, scorer=fuzz.WRatio, limit=30, score_cutoff=82):
                 scores[i] = max(scores.get(i, 0), score - 10)  # a typo match ranks below exact ones
-        ranked = sorted(scores, key=lambda i: (-scores[i], self._brands[i], self.drugs[i]["dosage"]))
-        drugs = [
-            {"match": "name" if i in exact else "similar_name", **self._drug_card(self.drugs[i])}
-            for i in ranked[:limit]
-        ]
+        ranked = sorted(scores, key=lambda i: (
+            -scores[i], self._brands[i], self.drugs[i]["dosage"], self.drugs[i]["price_lbp"] is None
+        ))
+        drugs, seen = [], set()
+        for i in ranked:  # the database lists some products twice; one card each
+            d = self.drugs[i]
+            key = (d["brand_name"], d["dosage"], d["form"])
+            if key in seen:
+                continue
+            seen.add(key)
+            if len(drugs) < limit:
+                drugs.append({"match": "name" if i in exact else "similar_name", **self._drug_card(d)})
 
         free = [
             m for m in self.free_meds
@@ -246,12 +281,13 @@ class Catalog:
              "list": FREE_LISTS.get(m["list_type"], m["list_type"]), "source_url": m["source_url"]}
             for m in free[:limit]
         ]
-        return {"drugs": drugs, "more_matches": max(0, len(ranked) - limit), "free_lists": free_lists}
+        return {"drugs": drugs, "more_matches": len(seen) - len(drugs), "free_lists": free_lists}
 
     # Facilities
 
     def match_areas(self, area: str) -> set[str]:
         q = normalize(area).strip()
+        q = normalize(AREA_ALIASES.get(q, q))
         found = {a for a in self._areas if q == normalize(a) or q in normalize(a)}
         if not found and len(q) >= 3:
             found = {a for a, score, _ in process.extract(q, self._areas, processor=normalize,
