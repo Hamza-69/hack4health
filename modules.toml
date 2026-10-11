@@ -4,11 +4,6 @@
 #   title   name shown in the admin panel (optional)
 # Removing a module from here revokes its token.
 
-[noop]
-title = "Noop"
-url = "http://localhost:8001"
-ui_url = "http://localhost:5174"
-
 [moph]
 title = "Ministry Info"
 url = "http://localhost:8002"
