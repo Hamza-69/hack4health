@@ -34,16 +34,18 @@ Judging criteria and what each one means for this repo:
 
 ## Product
 
-**The gap: "six services, six doors."** The ministry's own pages send patients through a different channel for each service:
+**The gap: "six services, six doors."** The ministry's own pages send patients through a different channel for each service (sources in `modules/requests/app/catalog.json` and `sandpit/data/`):
 
 | Service | How you get it today |
 |---|---|
-| A covered operation | Call the number on the controller doctor's office door |
-| Cancer or MS medicine | Your doctor files on AMAN, you wait for an SMS, then check with the pharmacy monthly |
+| Hospitalisation at the ministry's expense (operations) | Bring the papers in person to the card centre in Bir Hassan, Monday to Saturday |
+| Cancer or MS medicine | Your doctor files on AMAN, you wait for an SMS, then get it from the hospital or pharmacy |
 | Haemophilia or transplant medicine | Send documents by WhatsApp to 81/348838 |
 | Humira | Go in person to the ministry's 4th floor |
-| IVIG | Hand in a paper form at the Bir Hassan office |
-| Complaints | Call 1214 or 1787 |
+| IVIG | Hand in form AK010IVIG-4 at the ministry, or apply online with a site account |
+| Complaints | Call 1214 (also the app, website or email) |
+
+Facts to keep straight, because the Minister is judging: the ministry's data never names hernia, so Wasel answers about the hospitalisation request in general and never claims a specific operation is covered. 1787 is for questions about hospital cover and for displaced people, not complaints. The hospitalisation request needs a civil registry extract (إخراج قيد فردي), not the ID card.
 
 A Q&A bot fixes half of this: the information gets easy to find, but every request still goes through one person. Wasel gives the patient one door and the ministry one inbox. Positioning against the other team: they built the ministry's encyclopedia; we built its معقّب.
 
@@ -68,8 +70,9 @@ Out of scope: medicine-arrival alerts, and actions for NSSF or private insurance
 
 **Demo story:**
 
-1. A voice note: "My dad needs a hernia operation, does the ministry cover it?" Wasel answers with the source and offers to submit the request.
-2. The family sends photos. Wasel catches that the ID is missing, fills in the form and gives request number W-1042.
+1. A voice note: "My dad needs a hernia operation, does the ministry cover it?" Wasel asks whether he has other cover, then answers with the official source (hospitalisation for uninsured Lebanese, the documents, the desk) and offers to submit the request.
+2. The family sends photos of the medical report and the NSSF statement (`sandpit/demo/specimens.html`). Wasel catches that the إخراج قيد is missing; they send it; Wasel shows a summary, asks to confirm, and submits request W-1042.
+   Rehearse with `uv run python -m sandpit.eval.demo_flow --lang lb`; reset with `uv run python -m sandpit.demo.reset`.
 3. On the laptop, someone presses Approve in the admin panel, and the judge's phone buzzes.
 4. A judge asks any question of their own, to show the full knowledge base.
 
@@ -78,10 +81,10 @@ Out of scope: medicine-arrival alerts, and actions for NSSF or private insurance
 | Layer | Where | State |
 |---|---|---|
 | Knows | `modules/moph/` (data from the `sandpit/` crawl of moph.gov.lb) | Built. Tools for services, site/news/document search (Pinecone, multilingual), drugs, facilities, hotlines, unanswered questions. Needs `OPENAI_API_KEY` + `PINECONE_API_KEY` and a data load (`modules/moph/README.md`) |
-| Agent | `core/agent.py`, `core/runs.py` | Built: LangGraph loop, queue, supplier updates. The prompt still calls itself "the hack4health assistant" |
-| Does | a module for the service catalog | Not built |
-| Follows up | core tickets, `notify`, `resolve_ticket` | Built in the core. Deadline escalation not built |
-| Ministry inbox | admin panel + module pages | Ticket list built. Approve / Ask for more / Decline belong in the Does module's page |
+| Agent | `core/agent.py`, `core/runs.py` | Built: LangGraph loop, queue, supplier updates. Wasel prompt; replies in the user's language and script (Arabizi gets a rewrite pass) |
+| Does | `modules/requests/` | Built: catalog of 4 services (hospitalisation, IVIG, haemophilia/transplant, complaints), missing-document check, confirm, submit with W-numbers |
+| Follows up | core tickets, `notify`, `resolve_ticket`, `requests__request_status` | Built. Deadline escalation not built (overdue requests are flagged in the inbox) |
+| Ministry inbox | admin panel → Ministry Inbox | Built: live queue, filled form, documents, Approve / Ask for more / Decline that reach the user in seconds |
 | What people are asking | moph admin page: Unanswered, Searches | First version built |
 | Clients | `clients/` | Web chat only. WhatsApp (the demo client) not built. Voice notes and photos not handled anywhere yet |
 
@@ -262,11 +265,12 @@ modules/noop/        # example module and the template for `h4h module new`
   app/               # module.py, tools.py, models.py, api.py, main.py
   ui/                # its admin page
 modules/moph/        # Ministry Info: the "Knows" layer (see its README)
+modules/requests/    # Ministry Inbox: the "Does" layer: catalog.json, request tools, inbox page
 clients/web/         # web chat client: the page, debounce, reply callback (app/main.py, app/static/index.html)
 migrations/          # Alembic, core tables only
 modules.toml         # module registry
 clients.toml         # chat client registry
-sandpit/             # not part of the product: moph.gov.lb crawler and its data (crawler/, data/)
+sandpit/             # not part of the product: moph.gov.lb crawler and data, eval/ (test questions, demo rehearsal), demo/ (reset, document specimens)
 tests/
 ```
 
