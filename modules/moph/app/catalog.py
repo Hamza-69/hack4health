@@ -318,7 +318,8 @@ class Catalog:
     def match_areas(self, area: str) -> set[str]:
         q = normalize(area).strip()
         q = normalize(AREA_ALIASES.get(q, q))
-        found = {a for a in self._areas if q == normalize(a) or q in normalize(a)}
+        # Exact names first: "Jbeil" is the caza, not also Bint Jbeil in the South.
+        found = {a for a in self._areas if q == normalize(a)} or {a for a in self._areas if q in normalize(a)}
         if not found and len(q) >= 3:
             found = {a for a, score, _ in process.extract(q, self._areas, processor=normalize,
                                                           scorer=fuzz.WRatio, limit=3, score_cutoff=85)}

@@ -50,6 +50,13 @@ def test_facilities_by_type_and_area(catalog):
     assert catalog.find_facilities(area="zahle")["total"] >= 1
 
 
+def test_exact_area_name_wins_over_a_longer_one(catalog):
+    for area in ("Jbeil", "جبيل"):
+        result = catalog.find_facilities(type="government_hospital", area=area)
+        assert result["total"] >= 1
+        assert all(f["caza"] == "Jbeil" for f in result["facilities"]), area  # not Bint Jbeil
+
+
 def test_empty_result_warns_list_is_incomplete(catalog):
     result = catalog.find_facilities(type="pharmacy", area="Akkar")
     assert result["total"] == 0 and "incomplete" in result["note"]
