@@ -20,6 +20,13 @@ import { createRemoteJWKSet, jwtVerify } from 'jose'
 import pino from 'pino'
 import QRCode from 'qrcode'
 
+// libsignal, under Baileys, prints whole sessions (private keys included) with console.info and warn.
+console.info = () => {}
+const warn = console.warn
+console.warn = (first, ...rest) => {
+  if (!(typeof first === 'string' && /^(Session already|Closing open session|Decrypted message with closed)/.test(first))) warn(first, ...rest)
+}
+
 try { process.loadEnvFile('.env') } catch {} // CLIENT_TOKEN, written by `uv run h4h init`
 const CORE_URL = process.env.CORE_URL ?? 'http://localhost:8000'
 const CLIENT_TOKEN = process.env.CLIENT_TOKEN
