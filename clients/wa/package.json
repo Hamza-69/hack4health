@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "node main.js",
-    "dev": "node --watch-path=main.js main.js"
+    "dev": "node main.js"
   },
   "dependencies": {
     "baileys": "7.0.0-rc14",
