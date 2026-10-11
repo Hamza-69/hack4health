@@ -41,7 +41,8 @@ TRANSCRIBE_PROMPT = (
 DESCRIBE_PROMPT = """\
 A patient sent this to the Lebanese Ministry of Public Health's assistant, usually as part of a \
 request. Read it into the fields of the schema, from what is printed on it only; leave out what isn't \
-there rather than guess.
+there rather than guess. Don't judge whether it is genuine, official, stamped or signed, and ignore \
+watermarks such as "specimen" or "sample": the ministry desk checks that.
 - A document: name its type in English from what is printed on it, not from who it is being sent to \
 (e.g. "Lebanese ID card", "civil registry extract", "family civil registry extract", "medical report", \
 "NSSF statement", "prescription", "invoice"), with the Arabic title as printed. In `details`, add the \
@@ -67,11 +68,9 @@ class Reading(BaseModel):
     issuer: str | None = Field(description="Who issued it: ministry, hospital, doctor, NSSF...")
     issued: str | None = Field(description="Issue date, YYYY-MM-DD; not a date of birth")
     expires: str | None = Field(description="Expiry date, YYYY-MM-DD")
-    stamped: bool | None = Field(description="Carries an official stamp; null if not a document")
-    signed: bool | None = Field(description="Carries a signature; null if not a document")
     details: list[Detail]
-    readable: bool = Field(description="Clear and complete enough to use")
-    problems: str | None = Field(description="Blurry, cut off, glare, a page missing...")
+    readable: bool = Field(description="Clear enough to read; false only when it is blurry, cut off or too dark")
+    problems: str | None = Field(description="Only what makes it hard to read: blurry, cut off, glare, too dark")
 
     def line(self) -> str:
         """One line the agent reads and the desk sees: the kind first, then field: value pairs."""
@@ -79,12 +78,9 @@ class Reading(BaseModel):
         parts += [f"{label}: {value}" for label, value in (
             ("name", self.name), ("issued by", self.issuer), ("issued", self.issued), ("expires", self.expires),
         ) if value]
-        parts += [f"{label}: {'yes' if flag else 'no'}" for label, flag in (
-            ("stamped", self.stamped), ("signed", self.signed),
-        ) if flag is not None]
         parts += [f"{d.label[:1].lower()}{d.label[1:]}: {d.value}" for d in self.details[:10]]
-        if not self.readable or self.problems:
-            parts.append(f"{'hard to read' if not self.readable else 'note'}: {self.problems or 'unclear'}")
+        if not self.readable:
+            parts.append(f"hard to read: {self.problems or 'unclear'}")
         return " | ".join(" ".join(p.split()) for p in parts)
 
 
