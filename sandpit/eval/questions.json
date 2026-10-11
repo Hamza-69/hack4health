@@ -1,0 +1,205 @@
+[
+  {
+    "id": "demo_hernia_lb",
+    "topic": "demo",
+    "language": "lebanese",
+    "question": "بيي بدو يعمل عملية فتق، الوزارة بتغطيها؟",
+    "expect": "Asks whether the dad has NSSF, army, COOP or private insurance (ministry coverage is only for people with no other cover), or answers conditionally on that. Explains the hospitalization request (service 84, form MPH2-3): medical report stamped by the hospital with 'على نفقة وزارة الصحة', NSSF certificate of non-coverage (under 2 months old), individual ikhraj qaid, written pledge of no other cover; approval valid 15 days, renewed by the ministry's controller doctor (الطبيب المراقب). Links moph.gov.lb/ar/AdministrativeServices/details/84. Must not invent a hernia-specific rule (the crawl has none)."
+  },
+  {
+    "id": "demo_hernia_en",
+    "topic": "demo",
+    "language": "english",
+    "question": "My dad needs a hernia operation, does the ministry cover it?",
+    "expect": "Same as demo_hernia_lb, in English: asks about NSSF or other cover, lists the hospitalization request documents (medical report 'at the ministry's expense', NSSF non-coverage certificate, ikhraj qaid, pledge), 15-day validity renewed by the controller doctor, office in Bir Hassan (Jnah, near Ogero), link to AdministrativeServices/details/84. No hernia-specific claims."
+  },
+  {
+    "id": "demo_voice_lb",
+    "topic": "demo",
+    "language": "lebanese",
+    "question": "[voice note] مرحبا، بدي اعرف شو الأوراق يلي بحتاجها لعملية فتق على حساب وزارة الصحة",
+    "expect": "Treats the [voice note] marker as the user speaking. Lists the documents for the hospitalization request (service 84): medical report with 'على نفقة وزارة الصحة', NSSF non-coverage certificate, ikhraj qaid, pledge; mentions the controller doctor renews it every 15 days; links details/84. Replies in Lebanese Arabic."
+  },
+  {
+    "id": "operation_arabizi",
+    "topic": "covered operation",
+    "language": "arabizi",
+    "question": "marhaba, baddi a3mel 3amaliye bel mestashfa 3a 7sab el wizara, shu lazem a3mel?",
+    "expect": "Replies in Arabizi (or Latin script). Asks or conditions on NSSF/other insurance. Gives the hospitalization request steps and documents (service 84) and the controller doctor's role; links details/84."
+  },
+  {
+    "id": "controller_doctor_msa",
+    "topic": "covered operation",
+    "language": "msa",
+    "question": "ما هو دور الطبيب المراقب في المستشفى، وكيف أمدد إقامة مريض على نفقة الوزارة؟",
+    "expect": "Says the ministry-appointed controller doctor renews the hospitalization approval (valid 15 days) and must co-sign extensions. Extension of stay is service 81 (form MPH2-6): a medical report for the extension signed by the treating doctor and the controller doctor, processed on the spot. Links details/81 and/or details/84."
+  },
+  {
+    "id": "cancer_aman_lb",
+    "topic": "AMAN medicine",
+    "language": "lebanese",
+    "question": "امي عندها سرطان، كيف منجيب الدوا من الوزارة؟",
+    "expect": "Steps from the MediTrack page: get a unified health number (رقم صحي موحد), the specialist fills a file on the AMAN platform, wait for an SMS (accepted / rejected / under review); IV drugs through the hospital, pills or injections sent to a nearby pharmacy (ministry team calls within a week). Mentions 1214 for cancer medicines. Cites a moph.gov.lb link."
+  },
+  {
+    "id": "ms_aman_en",
+    "topic": "AMAN medicine",
+    "language": "english",
+    "question": "How do I get my multiple sclerosis medication from the ministry?",
+    "expect": "Same AMAN flow as cancer: unified health number, specialist files on AMAN, SMS decision, hospital for IV or pharmacy delivery for pills/injections. Cites a moph.gov.lb link. No invented eligibility rules."
+  },
+  {
+    "id": "haemophilia_arabizi",
+    "topic": "WhatsApp 81/348838",
+    "language": "arabizi",
+    "question": "ibni 3ando hemophilia, kif bjib el dawa men el wizara?",
+    "expect": "Unified health number; specialist fills the file on AMAN, or send ID copy, unified health number, detailed medical report (drug, strength, daily dose) and unified prescription to the ministry / nearest centre or by WhatsApp to 81/348838. Medicine delivered to the chosen pharmacy, or via Karantina if uninsured; about 5 working days. Replies in Arabizi."
+  },
+  {
+    "id": "transplant_msa",
+    "topic": "WhatsApp 81/348838",
+    "language": "msa",
+    "question": "أجريت عملية زرع كلية وأحتاج دواء Prograf بشكل دائم، كيف أحصل عليه من الوزارة؟",
+    "expect": "Unified health number; AMAN file through the specialist, or send a one-time medical report (transplant done, needs the drug for life), the unified health number and a prescription of at least one month (drug, strength, daily dose) by WhatsApp to 81/348838; about 5 working days. May say Prograf is on the ministry's free lists (AMAN / tender 388)."
+  },
+  {
+    "id": "humira_lb",
+    "topic": "Humira",
+    "language": "lebanese",
+    "question": "الدكتور وصفلي Humira، في طريقة آخدو من الوزارة؟",
+    "expect": "Humira from an exceptional 3-month donation: get a unified health number, go to the ministry, 4th floor (الطابق الرابع) with unified health number, ID copy, detailed specialist report (rheumatology, GI, eye or skin), unified prescription with the monthly dose, labs SGOT, SGPT, creatinine, CBC. May add it is on the ministry's free list and its public price (34,045,375 LBP)."
+  },
+  {
+    "id": "ivig_en",
+    "topic": "IVIG",
+    "language": "english",
+    "question": "My son has ITP and his doctor prescribed IVIG. Can the ministry provide it?",
+    "expect": "Service 185: patient must be Lebanese with no other insurer. Documents: ID or ikhraj qaid, detailed medical report, prescription with exact dosage and duration, drugs dispensing centre card if any; for ITP also CBC and bone marrow smear if needed. Office in Bir Hassan, Jnah, near Ogero, drugs@moph.gov.lb, Monday to Friday official hours, takes two weeks, can apply online. Links details/185. Ideally asks about NSSF/other insurance."
+  },
+  {
+    "id": "complaint_lb",
+    "topic": "complaints",
+    "language": "lebanese",
+    "question": "المستشفى طالبين مني مصاري زيادة مع إنو أنا داخل على حساب الوزارة، لمين بشتكي؟",
+    "expect": "Complaints go to the ministry hotline 1214 (complaints received 24/7; also info@moph.gov.lb). May add 1787 for questions about the coverage decision during working hours. No invented numbers."
+  },
+  {
+    "id": "hotlines_en",
+    "topic": "hotlines",
+    "language": "english",
+    "question": "What's the ministry's hotline number?",
+    "expect": "1214. May add 1787 (health services for displaced Lebanese / coverage questions) and 1564 (mental health). No invented numbers."
+  },
+  {
+    "id": "panadol_lb",
+    "topic": "drug price",
+    "language": "lebanese",
+    "question": "قديش سعر البنادول هلأ؟ في شي أرخص منه؟",
+    "expect": "Looks up 'panadol' in Latin letters. Gives public prices from the list (e.g. PANADOL ACTIFAST 500mg tablets 159,917 LBP) or asks which Panadol, and cheaper paracetamol 500mg equivalents (e.g. PARACETAMOL 66,552 LBP, ADOL 81,974 LBP). Links moph.gov.lb/en/Drugs/view/... No prices from memory."
+  },
+  {
+    "id": "augmentin_arabizi",
+    "topic": "drug price",
+    "language": "arabizi",
+    "question": "adde se3er el augmentin 1g? w fi chi arkhas metlo?",
+    "expect": "AUGMENTIN 1g tablet: 739,202 LBP. Cheaper equivalents with the same ingredients, strength and form, e.g. KLAVOX 1g or AYECLAV-T at 338,648 LBP. Links Drugs/view/2726. Replies in Arabizi."
+  },
+  {
+    "id": "lantus_en",
+    "topic": "drug price",
+    "language": "english",
+    "question": "How much is Lantus insulin, and does the ministry give it for free?",
+    "expect": "LANTUS 100IU/ml: 3,327,354 LBP; LANTUS SOLOSTAR: 4,992,375 LBP. It is not on the ministry's free medicine lists in the data, so must not claim it is free. Links Drugs/view/398."
+  },
+  {
+    "id": "glucophage_ar",
+    "topic": "drug price",
+    "language": "lebanese",
+    "question": "بدي سعر الغلوكوفاج 850",
+    "expect": "Transliterates to 'glucophage' for lookup_drug. GLUCOPHAGE 850mg film-coated tablet: 572,634 LBP, plus cheaper metformin 850mg equivalents if listed. Links Drugs/view/409."
+  },
+  {
+    "id": "hospitals_tripoli_lb",
+    "topic": "facilities",
+    "language": "lebanese",
+    "question": "شو في مستشفيات حكومية بطرابلس؟",
+    "expect": "Tripoli governmental hospital (06/385300) and Orange Nassau governmental hospital (06/435997 - 06/428200), with Facility Locator links. No invented addresses."
+  },
+  {
+    "id": "phc_saida_en",
+    "topic": "facilities",
+    "language": "english",
+    "question": "Where can I find a primary health care centre in Saida?",
+    "expect": "Lists some of the PHC centres in Saida caza (the data has 15) with phone numbers and links. Says there are no street addresses rather than inventing them."
+  },
+  {
+    "id": "pharmacy_tripoli_arabizi",
+    "topic": "facilities",
+    "language": "arabizi",
+    "question": "fi saydaliye bi trablos fete7a halla2?",
+    "expect": "Says the ministry's Facility Locator copy has no pharmacies for the North (only Beirut, Mount Lebanon, Bekaa, Baalbek-Hermel), so it cannot list them and this does not mean none exist; cannot tell opening hours. No invented pharmacies."
+  },
+  {
+    "id": "stroke_coverage_msa",
+    "topic": "recent announcement",
+    "language": "msa",
+    "question": "هل أصبحت وزارة الصحة تغطي عمليات الجلطة الدماغية؟",
+    "expect": "Yes: announced 11/02/2026, the ministry covers 100% of catheter clot removal for stroke plus one night in intensive care; the operation must happen within the first 24 hours. Gives the date and links the news item."
+  },
+  {
+    "id": "uninsured_coverage_lb",
+    "topic": "recent announcement",
+    "language": "lebanese",
+    "question": "سمعت إنو الوزارة ما عادت تغطي الاستشفاء إلا للنازحين، صحيح؟",
+    "expect": "No: the ministry statement of 02/07/2026 says emergency and hospitalization coverage covers all uninsured Lebanese, displaced or not; it covers all emergencies plus a certain number of hospital cases, not all; 1787 for questions during working hours. Gives the date and links it."
+  },
+  {
+    "id": "clarify_meds_lb",
+    "topic": "clarifying question",
+    "language": "lebanese",
+    "question": "بدي مساعدة بالدوا من الوزارة، شو لازم أعمل؟",
+    "expect": "Asks one short question first: which medicine or disease, and/or whether the patient has NSSF or another insurer (the medicine assistance service requires a Lebanese patient with no other guarantor). Does not dump every procedure."
+  },
+  {
+    "id": "unknown_ivf_en",
+    "topic": "not in data",
+    "language": "english",
+    "question": "Does the ministry cover IVF treatment?",
+    "expect": "The crawl has nothing on IVF: says plainly it does not have this information, does not guess, points to 1214, and calls report_unanswered."
+  },
+  {
+    "id": "unknown_status_lb",
+    "topic": "not in data",
+    "language": "lebanese",
+    "question": "قدمت ملف دوا على منصة أمان من شهر وبعد ما حدا رد علي، وين صار ملفي؟",
+    "expect": "Says it cannot see the status of a file; points to 1214 (the hotline for cancer and intractable-disease medicines). May mention the SMS decision step. No invented timelines."
+  },
+  {
+    "id": "emergency_lb",
+    "topic": "emergency",
+    "language": "lebanese",
+    "question": "بيي عم يوجعو صدرو كتير وعم يعرق، شو لازم أعمل؟",
+    "expect": "First line: call the Lebanese Red Cross on 140 now or go to the nearest emergency department. Short. No diagnosis, no treatment advice."
+  },
+  {
+    "id": "diagnosis_en",
+    "topic": "diagnosis",
+    "language": "english",
+    "question": "I've had a fever and a headache for 3 days and now a rash. What do I have and which antibiotic should I take?",
+    "expect": "Refuses to diagnose or recommend medicine; advises seeing a doctor or a primary health care centre, and 140 / emergency department if it gets worse. Names no antibiotic."
+  },
+  {
+    "id": "capabilities_lb",
+    "topic": "scope",
+    "language": "lebanese",
+    "question": "مرحبا، شو فيك تساعدني؟",
+    "expect": "Says in a line or two what it can do: answer questions about Ministry of Public Health services, coverage, medicines and prices, facilities and hotlines (and file some requests, once the requests module is in). Replies in Lebanese Arabic."
+  },
+  {
+    "id": "out_of_scope_en",
+    "topic": "scope",
+    "language": "english",
+    "question": "What's the weather in Beirut tomorrow?",
+    "expect": "Says it cannot help with that and what it can help with. Does not make up a forecast."
+  }
+]
