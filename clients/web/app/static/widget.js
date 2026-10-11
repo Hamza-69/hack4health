@@ -93,9 +93,9 @@
         .teaser { animation: none; }
       }
     </style>
-    <div class="wrap" dir="${lang === "ar" ? "rtl" : "ltr"}">
+    <div class="wrap" dir="ltr">
       <div class="panel" role="dialog" aria-label="${TEXT.title}" id="wasel-panel"></div>
-      <div class="teaser" role="status"><p>${TEXT.teaser}</p><button type="button" aria-label="${TEXT.dismiss}">${CLOSE}</button></div>
+      <div class="teaser" role="status"><p dir="${lang === "ar" ? "rtl" : "ltr"}">${TEXT.teaser}</p><button type="button" aria-label="${TEXT.dismiss}">${CLOSE}</button></div>
       <button class="launcher" type="button" aria-label="${TEXT.open}" aria-expanded="false" aria-controls="wasel-panel">
         <span class="mark">${MARK}</span><span class="x">${CLOSE}</span><i class="badge"></i>
       </button>
