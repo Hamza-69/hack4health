@@ -29,7 +29,7 @@ export default function Login() {
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <form onSubmit={submit} className="w-full max-w-sm space-y-4 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-        <h1 className="text-lg font-semibold">hack4health admin</h1>
+        <h1 className="text-lg font-semibold">Wasel · Ministry console</h1>
         <label className="block text-sm">
           Email
           <input

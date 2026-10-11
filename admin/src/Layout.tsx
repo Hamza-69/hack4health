@@ -19,7 +19,7 @@ export default function Layout() {
   return (
     <div className="flex h-screen">
       <aside className="flex w-60 shrink-0 flex-col border-r border-gray-200 bg-gray-100 p-4">
-        <div className="mb-6 px-3 font-semibold">hack4health</div>
+        <div className="mb-6 px-3"><div className="font-semibold">Wasel · واصل</div><div className="text-xs text-gray-500">Ministry of Public Health</div></div>
         <nav className="flex-1 space-y-1">
           <NavLink to="/tickets" className={linkClass}>
             Tickets
