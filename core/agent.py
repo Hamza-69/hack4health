@@ -29,7 +29,7 @@ from sqlalchemy import func, select
 from core import db, tools
 from core.models import Ticket, TicketStatus
 
-MODEL = os.environ.get("AGENT_MODEL", "openai:gpt-5.6-terra")  # any init_chat_model "provider:model"
+MODEL = os.environ.get("AGENT_MODEL", "openai:gpt-6.1-sol")  # any init_chat_model "provider:model"
 MODEL_TIMEOUT = 120  # seconds per model call
 TOOL_TIMEOUT = 60  # seconds per tool call
 MAX_STEPS = 25  # model and tool steps in one turn
@@ -50,10 +50,6 @@ script. Example: "Eh, fik ta3mol talab esteshfa2 3a 7sab el wezara. Lezem: 1. Ta
 - Modern Standard Arabic → Modern Standard Arabic. English → English. French → French.
 The ministry's content is in Arabic: translate or transliterate it into the user's script.
 
-Messages starting with "[photo <url>]" are photos the user sent, described for you; "[voice note]" \
-messages are what the user said, transcribed. The language of a reply follows the user's own words \
-(typed or spoken), never the language of a photo description.
-
 Style: short and plain, the way a helpful person texts on WhatsApp. No markdown: no **, #, headings \
 or tables; a short numbered list for steps or documents is fine. Links as bare URLs.
 
@@ -66,6 +62,22 @@ can help with.
 Messages that start with "[supplier · <module> · ticket <id>]" come from the supplier handling \
 that ticket, not from the user. Tell the user what changed in your own words. Once the user has \
 responded to that update, call resolve_ticket.
+
+What the user's app adds in square brackets. The language of a reply follows the user's own words \
+(typed or spoken), never the language of a description:
+- "[voice note] <transcript>": the user spoke this. Treat it as typed, and reply in the language \
+and script they would write it in.
+- "[photo <link>] <what it is> | <field>: <value> | ..." or "[document <link>] ...": the user sent a \
+photo or PDF, read into fields automatically. Use the fields (names, dates) when filling a request. \
+Take each photo as the document it says it is: whether papers are genuine, stamped or signed, and \
+optional documents such as proof of kinship, are for the ministry desk to check when it reviews the \
+request, so never hold a request back over them. When check_request says nothing is missing, the \
+request is complete. Never diagnose or judge \
+anything medical from a photo. When a tool takes a document, pass its link.
+- "[location: <place or coordinates>]": the user shared a location. If it is only coordinates, ask \
+which town or area they are in.
+- "[... can't be opened]" or "[... could not be read]": say what you can read (text, voice notes, \
+photos, PDFs) and ask them to send it that way.
 """
 
 RESOLVE_TICKET = {
@@ -164,11 +176,13 @@ async def call_model(state: State, runtime: Runtime[Context]) -> dict:
     queued = await ctx.sync(state["messages"])
     model = get_model().bind_tools(ctx.tools)
     messages = [SystemMessage(ctx.system), *state["messages"], *queued]
-    if hint := _script_hint(messages):
-        messages.append(SystemMessage(hint))
+    user = _user_words(messages)
+    if script := _script(user):
+        messages.append(SystemMessage(_HINTS[script]))
     reply = await model.ainvoke(messages)
-    if hint and not reply.tool_calls and _ARABIC.search(reply.text):
-        reply = await _rewrite_in_arabizi(reply)
+    if script and not reply.tool_calls and _wrong_script(script, reply.text):
+        log.warning("reply for user %s came out of the user's script (%s); rewriting", ctx.user_id, script)
+        reply = await _rewrite(reply, script, user)
     if reply.text:
         await ctx.send(reply.text)
     return {"messages": [*queued, reply]}
@@ -188,26 +202,67 @@ _ARABIZI = re.compile(
 )
 
 
-def _script_hint(messages: list[AnyMessage]) -> str | None:
-    """A last-moment reminder of the user's script: tool results in Arabic pull the model away from Arabizi."""
-    last = next((m for m in reversed(messages) if isinstance(m, HumanMessage) and not m.text.startswith(("[photo", "[supplier"))), None)
-    text = last.text.lower() if last else ""
-    if not text or _ARABIC.search(text) or not _ARABIZI.search(text):
-        return None
-    return (
-        "The user writes in Arabizi (Lebanese Arabic in Latin letters). Write your whole reply in Arabizi "
-        "with Latin letters and numbers only: not one word in Arabic script, including document names, "
-        "offices and quotes from tool results; transliterate them. Links stay as they are."
-    )
+_LATIN = re.compile(r"[A-Za-z\u00c0-\u024f]")
+_URL = re.compile(r"https?://\S+")
+_TAGGED = ("[supplier", "[photo", "[document", "[location", "[file", "[video", "[contact")
+
+# Tool results are mostly Arabic and photo descriptions English, and both pull the model away from
+# the user's language. A last-moment reminder, then a rewrite if the reply still came out wrong.
+_HINTS = {
+    "arabizi": "The user writes in Arabizi (Lebanese Arabic in Latin letters). Write your whole reply in Arabizi "
+    "with Latin letters and numbers only: not one word in Arabic script, including document names, "
+    "offices and quotes from tool results; transliterate them. Links stay as they are.",
+    "arabic": "The user writes in Arabic script. Write your whole reply in Arabic script, in their dialect "
+    "(Lebanese if they write Lebanese), even when tool results or photo descriptions are in English. "
+    "Links and numbers stay as they are.",
+    "latin": "The user writes in a language with Latin letters (English or French, not Arabizi). Write your "
+    "whole reply in that language, even though tool results are in Arabic. An Arabic document or office "
+    "name may follow its translation in brackets. Links stay as they are.",
+}
+_REWRITES = {
+    "arabizi": "Rewrite the message fully in Lebanese Arabizi (Latin letters and numbers, e.g. 3, 7, 2). "
+    "Transliterate every word in Arabic script.",
+    "arabic": "Rewrite the message fully in Arabic script, in the dialect of this message from the user: {user}",
+    "latin": "Rewrite the message fully in the language of this message from the user: {user}\n"
+    "Arabic document or office names may stay only in brackets after their translation.",
+}
 
 
-async def _rewrite_in_arabizi(reply: AIMessage) -> AIMessage:
-    """The model still slipped into Arabic script: have it rewrite the answer, keeping everything else."""
-    words = ", ".join(dict.fromkeys(_ARABIC_WORDS.findall(reply.text)))
+def _user_words(messages: list[AnyMessage]) -> str:
+    """The last thing the user wrote or said: not supplier updates, links or media descriptions."""
+    texts = (m.text.removeprefix("[voice note]").strip() for m in reversed(messages) if isinstance(m, HumanMessage))
+    return next((t for t in texts if t and not t.startswith(_TAGGED) and "could not be read]" not in t), "")
+
+
+def _script(text: str) -> str | None:
+    """arabic, arabizi or latin: how the user writes."""
+    if _ARABIC.search(text):
+        return "arabic"
+    if _ARABIZI.search(text.lower()):
+        return "arabizi"
+    return "latin" if _LATIN.search(text) else None
+
+
+def _wrong_script(script: str, reply: str) -> bool:
+    text = _URL.sub("", reply)
+    arabic, latin = len(_ARABIC.findall(text)), len(_LATIN.findall(text))
+    match script:
+        case "arabizi":
+            return arabic > 0
+        case "arabic":
+            return latin > arabic
+        case _:
+            return arabic > latin
+
+
+async def _rewrite(reply: AIMessage, script: str, user: str) -> AIMessage:
+    """The model still slipped out of the user's script: have it rewrite the answer, keeping everything else."""
+    instruction = _REWRITES[script].format(user=json.dumps(user[:300], ensure_ascii=False))
+    if script == "arabizi":  # name the words left in Arabic script, or the rewrite tends to keep some
+        instruction += f" These are still in Arabic script: {', '.join(dict.fromkeys(_ARABIC_WORDS.findall(reply.text)))}."
     rewrite = await get_model().ainvoke([
-        SystemMessage("Rewrite the message fully in Lebanese Arabizi (Latin letters and numbers, e.g. 3, 7, 2). "
-                      f"These words are still in Arabic script; write each in Arabizi: {words}. Keep the meaning, "
-                      "numbers, links and list layout exactly. Output only the rewritten message."),
+        SystemMessage(f"{instruction}\nKeep the meaning, numbers, links and list layout exactly. "
+                      "Output only the rewritten message."),
         HumanMessage(reply.text),
     ])
     return AIMessage(rewrite.text, id=reply.id)

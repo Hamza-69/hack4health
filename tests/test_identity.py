@@ -21,3 +21,13 @@ def test_web_id_case_does_not_matter():
 def test_rejects_non_phone_numbers(raw):
     with pytest.raises(ValueError):
         user_id_for("wa", raw)
+
+
+def test_whatsapp_lid_is_its_own_account():
+    assert user_id_for("wa", "123456789012345@lid") == user_id_for("wa", " 123456789012345@lid")
+    assert user_id_for("wa", "123456789012345@lid") != user_id_for("wa", "+96170123456")
+
+
+def test_rejects_malformed_lids():
+    with pytest.raises(ValueError):
+        user_id_for("wa", "abc@lid")

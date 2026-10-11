@@ -82,3 +82,7 @@ class MessagesIn(BaseModel):
 class MessagesOut(BaseModel):
     user_id: uuid.UUID
     queued: bool  # the user's agent was already running; it picks the messages up at its next step
+
+
+class MediaOut(BaseModel):
+    message: str  # "[voice note] ...", "[photo <link>] ..." or "[document <link>] ..."

@@ -218,6 +218,9 @@ def dev() -> None:
         folder, url = CLIENTS_DIR / c.app, urlsplit(c.url)
         if not folder.is_dir() or url.hostname not in ("localhost", "127.0.0.1"):
             continue  # hosted elsewhere
+        if (folder / "package.json").exists():  # a Node client, e.g. WhatsApp
+            processes.append((f"{c.app}-client", ["npm", "run", "dev", "-w", str(folder)], {"CORE_URL": core_url, "PORT": str(url.port)}))
+            continue
         # Open event streams would otherwise hold up every reload.
         processes.append((f"{c.app}-client", ["uv", "run", "--directory", str(folder), "uvicorn", "app.main:app", "--reload", "--timeout-graceful-shutdown", "1", "--port", str(url.port)], {"CORE_URL": core_url}))
     try:

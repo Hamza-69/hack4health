@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>hack4health chat</title>
+<title>Wasel</title>
 <style>
   :root {
     --bg: #f4f6f5;
@@ -17,6 +17,7 @@
     --error: #b42318;
     --error-bg: #fdecea;
     --shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+    --record: #d93025;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -31,6 +32,7 @@
       --error: #ff8a80;
       --error-bg: #3a1d1b;
       --shadow: none;
+      --record: #ff6b5e;
     }
   }
   * { box-sizing: border-box; }
@@ -99,14 +101,29 @@
   form button { background: var(--accent); color: var(--accent-text); border: none; width: 40px; height: 40px; padding: 0;
                 display: grid; place-items: center; flex: none; }
   form button:disabled { opacity: 0.4; cursor: default; }
+  form button.ghost { background: transparent; color: var(--muted); }
+  form button.ghost:hover { color: var(--accent); }
+  form button.recording-on { background: var(--record); color: #fff; }
+  [hidden] { display: none !important; }
+  .recording { flex: 1; display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 14px;
+               border: 1px solid var(--border); border-radius: 20px; background: var(--bg); }
+  .recording .rec-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--record); animation: blink 1.2s infinite; }
+  .recording span { flex: 1; font-variant-numeric: tabular-nums; }
+  .recording button { width: auto; height: auto; background: none; color: var(--muted); padding: 2px 4px; font-size: 13.5px; }
+
+  .msg img { display: block; max-width: 100%; width: 240px; max-height: 320px; object-fit: cover; border-radius: 10px;
+             margin: 2px 0 4px; background: var(--border); }
+  .msg .label { font-weight: 600; }
+  .msg .note { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .msg .note.quote { font-style: italic; }
 </style>
 </head>
 <body>
 <div class="app">
   <header>
-    <div class="avatar" aria-hidden="true">h4h</div>
+    <div class="avatar" aria-hidden="true">و</div>
     <div class="who">
-      <h1>hack4health assistant</h1>
+      <h1>Wasel · واصل</h1>
       <p><span class="dot" id="dot"></span><span id="status">connecting…</span></p>
     </div>
     <button id="reset" type="button" title="Start over as a brand new user">New chat</button>
@@ -115,9 +132,20 @@
   <main id="list" aria-live="polite"></main>
 
   <form id="composer">
+    <button id="attach" class="ghost" type="button" aria-label="Send a photo or PDF" title="Send a photo or PDF">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m21 11.5-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l8.6-8.6a3.7 3.7 0 0 1 5.2 5.2l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l8-8"/></svg>
+    </button>
+    <input id="file" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" hidden>
+    <div id="recording" class="recording" hidden>
+      <i class="rec-dot" aria-hidden="true"></i><span id="rec-time">0:00</span>
+      <button id="rec-cancel" type="button">Cancel</button>
+    </div>
     <textarea id="input" rows="1" placeholder="Message" dir="auto" aria-label="Message"></textarea>
-    <button id="send" type="submit" aria-label="Send" disabled>
+    <button id="send" type="submit" aria-label="Send" hidden>
       <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.4 20.4 21 12 3.4 3.6 3.4 10l12.6 2-12.6 2z"/></svg>
+    </button>
+    <button id="mic" type="button" aria-label="Record a voice note" title="Record a voice note">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 15a3.5 3.5 0 0 0 3.5-3.5v-6a3.5 3.5 0 0 0-7 0v6A3.5 3.5 0 0 0 12 15Zm6-3.5a1 1 0 1 0-2 0 4 4 0 0 1-8 0 1 1 0 1 0-2 0 6 6 0 0 0 5 5.9V20H8.5a1 1 0 1 0 0 2h7a1 1 0 1 0 0-2H13v-2.6a6 6 0 0 0 5-5.9Z"/></svg>
     </button>
   </form>
 </div>
@@ -126,10 +154,10 @@
 const ACCOUNT_KEY = "h4h.web.account";
 const SUGGESTIONS = [
   "What can you help me with?",
+  "My dad needs a hernia operation, does the ministry cover it? We're Lebanese with no insurance.",
   "How much is Panadol, and is there a cheaper equivalent?",
   "شو رقم الخط الساخن لوزارة الصحة؟",
-  "Which hospitals are in Zahle?",
-  "Please open a request for 2 insulin pens by Tuesday",
+  "kifak, fi mestashfa 7ekoumi b Saida?",
 ];
 
 const store = {
@@ -141,10 +169,14 @@ const store = {
 let account = store.get(ACCOUNT_KEY) || newAccount();
 let chat = loadChat();
 let typing = false, typingTimer = null, source = null;
+let outbox = Promise.resolve();  // sends go out one at a time, so the agent gets them in order
+let recorder = null, recordCancelled = false, recordStarted = 0, recordTimer = null;
 
 const list = document.getElementById("list");
 const input = document.getElementById("input");
 const sendButton = document.getElementById("send");
+const micButton = document.getElementById("mic");
+const fileInput = document.getElementById("file");
 
 function newAccount() {
   const id = crypto.randomUUID();
@@ -186,9 +218,21 @@ function handle(event) {
 }
 
 function add(message) {
-  chat.push({ ...message, at: Date.now() });
+  const entry = { ...message, at: Date.now() };
+  chat.push(entry);
   saveChat();
   render();
+  return entry;
+}
+
+function update(entry, changes) {
+  Object.assign(entry, changes);
+  saveChat();
+  render();
+}
+
+function enqueue(work) {
+  outbox = outbox.then(work, work);
 }
 
 function mark(from, to) {
@@ -204,20 +248,105 @@ function setTyping(on) {
   render();
 }
 
-async function send(text) {
+function send(text) {
   text = text.trim();
   if (!text) return;
   add({ who: "me", text, state: "pending" });
+  enqueue(async () => {
+    try {
+      const response = await fetch("/api/send", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ account_id: account, text }),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    } catch (e) {
+      mark("pending", "failed");
+      add({ who: "error", text: `Could not send: ${e.message}` });
+    }
+  });
+}
+
+// A photo, PDF or voice note. The core reads it (transcript or one-line description) and keeps
+// photos and PDFs at a link, which replaces the local preview once it is back.
+function sendFile(file, kind) {
+  const entry = add({
+    who: "me", kind, text: "", name: file.name, state: "reading",
+    src: kind === "photo" ? URL.createObjectURL(file) : null,
+  });
+  enqueue(async () => {
+    const form = new FormData();
+    form.append("account_id", account);
+    form.append("file", file, file.name || kind);
+    try {
+      const response = await fetch("/api/media", { method: "POST", body: form });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.detail || `HTTP ${response.status}`);
+      const [, tag, link, note] = body.message.match(/^\[(voice note|photo|document)(?: (\S+))?\] ?([\s\S]*)$/) || [];
+      update(entry, { state: "pending", note: note ?? body.message, src: link || (kind === "photo" ? entry.src : null) });
+    } catch (e) {
+      update(entry, { state: "failed" });
+      add({ who: "error", text: `Could not send the ${kind === "voice" ? "voice note" : kind}: ${e.message}` });
+    }
+  });
+}
+
+function pickFile() {
+  const file = fileInput.files[0];
+  fileInput.value = "";
+  if (file) sendFile(file, file.type === "application/pdf" ? "document" : "photo");
+}
+
+async function startRecording() {
+  let stream;
   try {
-    const response = await fetch("/api/send", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ account_id: account, text }),
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   } catch (e) {
-    mark("pending", "failed");
-    add({ who: "error", text: `Could not send: ${e.message}` });
+    add({ who: "error", text: `The microphone is not available: ${e.message}` });
+    return;
+  }
+  const mimeType = ["audio/webm;codecs=opus", "audio/mp4", "audio/ogg;codecs=opus"].find((t) => MediaRecorder.isTypeSupported(t));
+  const chunks = [];
+  recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+  recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+  recorder.onstop = () => {
+    stream.getTracks().forEach((t) => t.stop());
+    const type = recorder.mimeType || mimeType || "audio/webm";
+    const long = Date.now() - recordStarted > 700;
+    recorder = null;
+    clearInterval(recordTimer);
+    updateComposer();
+    if (recordCancelled || !long || !chunks.length) return;
+    const extension = type.includes("mp4") ? "m4a" : type.includes("ogg") ? "ogg" : "webm";
+    sendFile(new File(chunks, `voice-note.${extension}`, { type }), "voice");
+  };
+  recordCancelled = false;
+  recordStarted = Date.now();
+  recorder.start();
+  recordTimer = setInterval(updateComposer, 250);
+  updateComposer();
+}
+
+function stopRecording(cancel) {
+  recordCancelled = cancel;
+  recorder?.stop();
+}
+
+function updateComposer() {
+  const recording = !!recorder;
+  const hasText = !!input.value.trim();
+  document.getElementById("recording").hidden = !recording;
+  document.getElementById("attach").hidden = recording;
+  input.hidden = recording;
+  sendButton.hidden = recording || !hasText;
+  sendButton.disabled = !hasText;
+  micButton.hidden = !recording && hasText;
+  micButton.classList.toggle("recording-on", recording);
+  micButton.setAttribute("aria-label", recording ? "Send the voice note" : "Record a voice note");
+  micButton.title = micButton.getAttribute("aria-label");
+  if (recording) {
+    const seconds = Math.floor((Date.now() - recordStarted) / 1000);
+    document.getElementById("rec-time").textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
   }
 }
 
@@ -240,16 +369,39 @@ function linkified(text) {
   return fragment;
 }
 
-const TICKS = { pending: "🕓", delivered: "✓✓", failed: "not sent" };
+function content(m) {
+  if (!m.kind) return [linkified(m.text)];
+  const parts = [];
+  if (m.kind === "photo" && m.src) {
+    const img = document.createElement("img");
+    img.src = m.src;
+    img.alt = m.note || "Photo";
+    parts.push(img);
+  } else {
+    const label = document.createElement("span");
+    label.className = "label";
+    label.textContent = m.kind === "voice" ? "🎤 Voice note" : `📄 ${m.name || "Document"}`;
+    parts.push(label);
+  }
+  if (m.note) {
+    const note = document.createElement("span");
+    note.className = m.kind === "voice" ? "note quote" : "note";
+    note.textContent = m.kind === "voice" ? `“${m.note}”` : m.note;
+    parts.push(note);
+  }
+  return parts;
+}
+
+const TICKS = { reading: "reading…", pending: "🕓", delivered: "✓✓", failed: "not sent" };
 
 function render() {
   list.replaceChildren();
   if (chat.length === 0 && !typing) {
     const empty = document.createElement("div");
     empty.className = "empty";
-    empty.innerHTML = `<h2>Talk to the agent</h2>
-      <p>Ask in English, Arabic or Arabizi. Requests you open appear in the admin panel under
-      Modules → Noop; answer one there and the agent will tell you here.</p>`;
+    empty.innerHTML = `<h2>Ask Wasel</h2>
+      <p>Ask about the Ministry of Public Health in English, Arabic or Arabizi, by text or voice note.
+      Send photos of your papers when Wasel asks for them.</p>`;
     const chips = document.createElement("div");
     chips.className = "chips";
     for (const s of SUGGESTIONS) {
@@ -271,7 +423,7 @@ function render() {
     if (m.who === "error") el.className = "error";
     if (previous && previous !== m.who) el.classList.add("gap");
     el.dir = "auto";
-    el.append(linkified(m.text));
+    el.append(...content(m));
     if (m.who !== "error") {
       const meta = document.createElement("span");
       meta.className = "meta";
@@ -310,9 +462,13 @@ function resize() {
   input.style.height = "auto";
   input.style.height = `${input.scrollHeight + 2}px`;  // + the border
   input.style.overflowY = input.scrollHeight > 160 ? "auto" : "hidden";
-  sendButton.disabled = !input.value.trim();
+  updateComposer();
 }
 input.addEventListener("input", resize);
+document.getElementById("attach").addEventListener("click", () => fileInput.click());
+fileInput.addEventListener("change", pickFile);
+micButton.addEventListener("click", () => (recorder ? stopRecording(false) : startRecording()));
+document.getElementById("rec-cancel").addEventListener("click", () => stopRecording(true));
 
 document.getElementById("reset").addEventListener("click", () => {
   if (!confirm("Start over as a brand new user? The agent will not know this chat.")) return;
@@ -323,7 +479,10 @@ document.getElementById("reset").addEventListener("click", () => {
   connect();
 });
 
+// Previews of photos still uploading when the page closed are gone; their sends did not finish.
+chat.forEach((m) => { if (m.state === "reading") { m.state = "failed"; if (m.src?.startsWith("blob:")) m.src = null; } });
 render();
+updateComposer();
 connect();
 input.focus();
 </script>

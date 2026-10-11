@@ -19,7 +19,7 @@ def normalize_account(app: App, account_id: str) -> str:
     """The account id in one canonical form: what the user id is derived from and replies go to."""
     match app:
         case "wa":
-            return normalize_phone(account_id)
+            return normalize_lid(account_id) if account_id.endswith("@lid") else normalize_phone(account_id)
         case "tg":
             return str(int(account_id))
         case "web":
@@ -39,3 +39,11 @@ def normalize_phone(raw: str) -> str:
     if not phonenumbers.is_possible_number(number):
         raise ValueError(f"not a phone number: {raw!r}")
     return phonenumbers.format_number(number, phonenumbers.PhoneNumberFormat.E164)
+
+
+def normalize_lid(raw: str) -> str:
+    """A WhatsApp LID (<digits>@lid): the private id WhatsApp uses when it doesn't share the number."""
+    digits = raw.strip().removesuffix("@lid")
+    if not digits.isdigit():
+        raise ValueError(f"not a WhatsApp LID: {raw!r}")
+    return f"{digits}@lid"

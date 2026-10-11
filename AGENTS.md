@@ -81,12 +81,12 @@ Out of scope: medicine-arrival alerts, and actions for NSSF or private insurance
 | Layer | Where | State |
 |---|---|---|
 | Knows | `modules/moph/` (data from the `sandpit/` crawl of moph.gov.lb) | Built. Tools for services, site/news/document search (Pinecone, multilingual), drugs, facilities, hotlines, unanswered questions. Needs `OPENAI_API_KEY` + `PINECONE_API_KEY` and a data load (`modules/moph/README.md`) |
-| Agent | `core/agent.py`, `core/runs.py` | Built: LangGraph loop, queue, supplier updates. Wasel prompt; replies in the user's language and script (Arabizi gets a rewrite pass) |
+| Agent | `core/agent.py`, `core/runs.py` | Built: LangGraph loop, queue, supplier updates. Wasel prompt; replies in the user's language and script (a reminder each turn, and a rewrite when a reply comes out in the wrong script); voice/photo tags |
 | Does | `modules/requests/` | Built: catalog of 4 services (hospitalisation, IVIG, haemophilia/transplant, complaints), missing-document check, confirm, submit with W-numbers |
 | Follows up | core tickets, `notify`, `resolve_ticket`, `requests__request_status` | Built. Deadline escalation not built (overdue requests are flagged in the inbox) |
 | Ministry inbox | admin panel → Ministry Inbox | Built: live queue, filled form, documents, Approve / Ask for more / Decline that reach the user in seconds |
 | What people are asking | moph admin page: Unanswered, Searches | First version built |
-| Clients | `clients/` | Web chat only. WhatsApp (the demo client) not built. Voice notes and photos not handled anywhere yet |
+| Clients | `clients/` | WhatsApp (`clients/wa/`, a number linked by QR code) and the web chat (`clients/web/`). Both take text, voice notes, photos and PDFs |
 
 ## Architecture
 
@@ -94,8 +94,9 @@ Modular AI agent reached through chat clients. Each capability is a separate mod
 
 ## Components
 
-- **Clients**: WhatsApp, Telegram, a web app. The only way into the system. Each is registered in `clients.toml` with the URL the core POSTs replies to. Built so far: `clients/web/`, a web chat for testing.
+- **Clients**: WhatsApp, Telegram, a web app. The only way into the system. Each is registered in `clients.toml` with the URL the core POSTs replies to. Built so far: `clients/wa/` (WhatsApp) and `clients/web/` (a web chat for testing, and the demo fallback).
 - **Agent API** (`POST /agent/messages`): the webhook. Takes `account_id` + `messages[]` (debounced by the client) and returns at once; the agent's replies are POSTed to the client's `<url>/messages` as `{account_id, text}`. Only registered clients, with their client token, can call it.
+- **Media** (`POST /agent/media`): a client uploads a voice note, photo or PDF and gets back a text message to send with the user's others (see Media).
 - **Agent** (`core/agent.py`, `core/runs.py`): a LangGraph agent that runs inside the core (see Agent).
 - **Core** (`core/`): owns users, chats, tickets, archives and admins. Serves the admin API, the module API and the public key. Reads the module registry.
 - **Modules** (`modules/<name>/`): one service per functionality, built on the SDK (see Modules).
@@ -129,7 +130,7 @@ The agent reaches every module's tools through `core/tools.py`: tool names are `
 
 ## Agent
 
-A LangGraph loop (`core/agent.py`): the model answers or calls tools until it answers without one. The model is `AGENT_MODEL` (any `init_chat_model` string, default `openai:gpt-5.6-terra`, chosen over luna and sol for clean Arabizi and speed; OpenAI models go through the Responses API) and needs `OPENAI_API_KEY` in the root `.env`.
+A LangGraph loop (`core/agent.py`): the model answers or calls tools until it answers without one. The model is `AGENT_MODEL` (any `init_chat_model` string, default `openai:gpt-6.1-sol`; OpenAI models go through the Responses API) and needs `OPENAI_API_KEY` in the root `.env`.
 
 - The system prompt is built each turn: base rules, each module's MCP `instructions`, the user's open tickets, and the resolutions of the last few archived tickets.
 - Tools: every module's tools plus the core's own `resolve_ticket`, which closes one of this user's `awaiting_user` tickets with a `resolution`.
@@ -143,6 +144,32 @@ Runs (`core/runs.py`) serve many users at once, one run per user at a time:
 - While a user's run is active, only it writes `users.messages`; new messages and supplier updates go to `users.queue`.
 - Before each model call the run locks the user, checks `agent_running_since` is still the value it set, saves the chat, pours in the queue and refreshes the flag. A run whose flag was replaced stops without writing.
 - All of this state is in Postgres, so several core workers can share users. A sweeper in each core restarts runs whose flag went stale.
+
+## Media
+
+Clients turn what isn't text into text before it reaches the agent, through the core's `POST /agent/media` (`core/media.py`). Modules only ever see these messages:
+
+| The user sends | The agent gets | Kept? |
+|---|---|---|
+| voice note | `[voice note] <transcript>` (OpenAI `TRANSCRIBE_MODEL`, default `gpt-4o-transcribe`) | no |
+| photo (JPEG, PNG, WebP) | `[photo <link>] <what it is> \| <field>: <value> \| ...` (`VISION_MODEL`, default `gpt-6-luna` with reasoning effort `VISION_EFFORT=none`, about 3 s) | yes |
+| PDF | `[document <link>] <what it is> \| <field>: <value> \| ...` | yes |
+| location | `[location: <place or coordinates>]` (WhatsApp only, made by the client) | no |
+| video, other files, contacts | `[... can't be opened ...]`, so the agent asks for another way | no |
+
+- Links are `CORE_PUBLIC_URL/media/<random name>` (default `http://localhost:8000`). The name is the only key, so a module (the ministry's inbox) can show the photo by its link, and nobody can list or guess the files.
+- A photo is read into fields (`Reading` in `core/media.py`): document type and Arabic title, whose it is, issuer, issue and expiry dates, and up to 10 printed details a desk needs (parents and registry number on civil records; diagnosis, procedure, hospital and admission date on medical reports; coverage on NSSF statements; medicines on prescriptions). The kind comes first, so the requests module matches photos to documents by it; the fields fill the request. Only an unreadable photo is flagged ("hard to read: blurry"). Neither the reader nor the agent judges whether papers are genuine, stamped or signed, or asks for optional documents before submitting: the ministry desk checks that when it reviews the request.
+- A client holds its debounce until every upload in the batch is read, so the agent gets the user's messages together and in order.
+
+## WhatsApp
+
+`clients/wa/` is a Node service on Baileys: it links one WhatsApp number as a device, like WhatsApp Web, so nothing needs a Meta business account or a public URL.
+
+- Link it: run `uv run h4h dev`, open http://localhost:9001 and scan the QR code from WhatsApp › Settings › Linked devices on the phone with Wasel's number. The session stays in `clients/wa/auth/` (gitignored); delete that folder to link another number. Only one laptop can hold the session at a time.
+- Use a spare number: the client answers every private chat on it. `WA_ALLOW=96170123456,...` in `clients/wa/.env` limits it to those numbers. Groups, statuses, channels, reactions and stickers are ignored.
+- Account ids are E.164 numbers. When WhatsApp hides the number behind a LID (`<digits>@lid`), the client looks it up in the session's LID mapping, and passes the LID itself as the account id only if that fails.
+- It marks messages read and shows "typing…" until the reply arrives. Replies that come in while WhatsApp is reconnecting wait and go out once it is back.
+- No 24h window: that rule belongs to the Cloud API, not to a linked device, so supplier updates always go through the agent.
 
 ## Tokens
 
@@ -236,7 +263,7 @@ The new chat loads the last few `resolution` notes as background instead of old 
 
 ## Supplier updates
 
-When a supplier acts in a module, the module calls the core's `notify` endpoint (`POST /module/tickets/<id>/notify`). Everything below is built except the 24h template:
+When a supplier acts in a module, the module calls the core's `notify` endpoint (`POST /module/tickets/<id>/notify`). Everything below is built except the 24h template, which the WhatsApp client doesn't need (see WhatsApp):
 
 - The event becomes a message tagged for the agent: `{"role": "user", "content": "[supplier · <module> · ticket <id>] Appointment confirmed, Tue 10am"}`. The system prompt says tagged messages come from suppliers, not the user.
 - It goes into `users.messages` and starts the agent if idle, or into the live queue if a run is active.
@@ -255,6 +282,7 @@ core/
   registry.py        # modules.toml, clients.toml
   app.py             # FastAPI app: admin_api.py (/admin), module_api.py (/module), agent_api.py (/agent), JWKS
   agent.py           # the LangGraph agent: prompt, tools, model loop
+  media.py           # voice notes, photos and PDFs from clients, as text messages; /media/<name> files
   runs.py            # agent runs: one per user, live queue, sweeper, replies to clients
   tools.py           # agent side: list and call every module's MCP tools
   cli.py             # `uv run h4h ...`
@@ -267,6 +295,7 @@ modules/noop/        # example module and the template for `h4h module new`
 modules/moph/        # Ministry Info: the "Knows" layer (see its README)
 modules/requests/    # Ministry Inbox: the "Does" layer: catalog.json, request tools, inbox page
 clients/web/         # web chat client: the page, debounce, reply callback (app/main.py, app/static/index.html)
+clients/wa/          # WhatsApp client (Node, Baileys): linking, debounce, media, replies (main.js)
 migrations/          # Alembic, core tables only
 modules.toml         # module registry
 clients.toml         # chat client registry
@@ -274,7 +303,7 @@ sandpit/             # not part of the product: moph.gov.lb crawler and data, ev
 tests/
 ```
 
-Each module is its own uv project (own `.venv`, depends on `h4h` by path) and its UI is an npm workspace. `uv run h4h dev` runs the core on :8000, the admin panel on :5173, every local module on the ports from `modules.toml`, and every local client on the port from `clients.toml` (the web chat on :9000), with merged output.
+Each module is its own uv project (own `.venv`, depends on `h4h` by path) and its UI is an npm workspace. `uv run h4h dev` runs the core on :8000, the admin panel on :5173, every local module on the ports from `modules.toml`, and every local client on the port from `clients.toml` (the web chat on :9000, WhatsApp on :9001), with merged output. A client folder with a `package.json` is a Node client and an npm workspace (`npm install` at the root installs it).
 
 Commands:
 
@@ -299,5 +328,5 @@ MCP tool errors: raise `ToolError` for messages the agent should see; any other 
 
 ## Open
 
-- The WhatsApp and Telegram clients: receive messages, debounce, call the agent API, send replies, verify the reply token (`clients/web/` shows the shape).
-- The 24h WhatsApp template fallback: modules need a way to name their template in `notify`, and the core sends it through the client instead of running the agent.
+- The Telegram client (`clients/web/` and `clients/wa/` show the shape).
+- The 24h WhatsApp template fallback, only if we move from a linked device to the WhatsApp Cloud API: modules would name their template in `notify`, and the core would send it through the client instead of running the agent.

@@ -4,6 +4,7 @@
   "workspaces": [
     "admin",
     "sdk/ui",
-    "modules/*/ui"
+    "modules/*/ui",
+    "clients/wa"
   ]
 }
