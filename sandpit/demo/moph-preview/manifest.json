@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Wasel preview for moph.gov.lb",
+  "version": "1.0.0",
+  "description": "Shows Wasel on the Ministry of Public Health's website, in this browser only, for demos. Nothing on the ministry's servers changes.",
+  "icons": { "128": "icon-128.png" },
+  "content_scripts": [
+    {
+      "matches": ["https://www.moph.gov.lb/*", "https://moph.gov.lb/*"],
+      "js": ["preview.js"],
+      "css": ["preview.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

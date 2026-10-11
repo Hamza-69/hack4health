@@ -28,6 +28,8 @@ Rehearse the whole story without a phone: `uv run python -m sandpit.eval.demo_fl
 
 The panel asked whether Wasel can live on the ministry's site, not only WhatsApp. Open http://localhost:9000 and scroll to **One line on the ministry's website**: the live preview is a ministry service page with `widget.js` installed. Press **Start the request with Wasel** in it: the widget opens on that question and Wasel answers with the official page. The snippet beside it is the whole integration. The landing page's **العربية / English** switch changes the page, the preview and the chat.
 
+To show it on the ministry's **real** website instead, install the preview extension in Chrome before the demo: `sandpit/demo/moph-preview/README.md` (two minutes, one permission to allow).
+
 ## Second story: "send a photo of your bill"
 
 For the 10-minute stage demo, or if a judge asks about hospitals charging extra. The prop is the fourth page of `specimens.html` (open `specimens.html#bill` to show it alone, or send `sandpit/demo/bill.png` in the web chat). Al Sindyan Governmental Hospital is fictional, so no real hospital is shown overcharging: the bills module knows it only as a demo hospital (`BILLS_DEMO=0` removes it).
