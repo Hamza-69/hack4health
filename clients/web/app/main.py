@@ -1,4 +1,9 @@
-"""Web chat client: a page to talk to the agent, and the client side of the agent API.
+"""Web chat client: Wasel's public site, a chat page, and the client side of the agent API.
+
+Pages: / is the landing page, /chat the chat (also what the embeddable widget opens in an iframe,
+with ?embed=widget), /widget.js the one-line embed for any website, and /ministry a demo page that
+embeds it the way the ministry's site would. Every link between them is relative, so the site works
+at the root locally and under /chat/ behind the proxy on Fly.
 
 The browser posts each message here. After DEBOUNCE_SECONDS without a new one, the batch goes to
 the core's POST /agent/messages with this client's token. Voice notes, photos and PDFs first go to
@@ -22,6 +27,7 @@ import jwt
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.sse import EventSourceResponse
 from h4h.tokens import TokenType, verify
@@ -32,9 +38,10 @@ CORE_URL = os.environ.get("CORE_URL", "http://localhost:8000")
 CLIENT_TOKEN = os.environ.get("CLIENT_TOKEN")
 DEBOUNCE = float(os.environ.get("DEBOUNCE_SECONDS", "1.5"))
 AUDIENCE = "client:web"
-PAGE = Path(__file__).parent / "static" / "index.html"
+STATIC = Path(__file__).parent / "static"
 
 app = FastAPI(title="hack4health web client")
+app.mount("/static", StaticFiles(directory=STATIC), name="static")
 jwks = jwt.PyJWKClient(f"{CORE_URL}/.well-known/jwks.json")
 
 pending: dict[str, list[str]] = defaultdict(list)  # messages waiting out the debounce
@@ -73,9 +80,29 @@ def _push(account_id: str, event: dict, *, hold: bool = False) -> None:
         held[account_id].append(event)
 
 
+def _page(name: str, media_type: str | None = None) -> FileResponse:
+    # Pages change with every deploy, so browsers revalidate them instead of keeping a stale copy.
+    return FileResponse(STATIC / name, media_type=media_type, headers={"Cache-Control": "no-cache"})
+
+
 @app.get("/", include_in_schema=False)
-def page() -> FileResponse:
-    return FileResponse(PAGE)
+def landing() -> FileResponse:
+    return _page("landing.html")
+
+
+@app.get("/chat", include_in_schema=False)
+def chat() -> FileResponse:
+    return _page("chat.html")
+
+
+@app.get("/ministry", include_in_schema=False)
+def ministry_demo() -> FileResponse:
+    return _page("ministry.html")
+
+
+@app.get("/widget.js", include_in_schema=False)
+def widget() -> FileResponse:
+    return _page("widget.js", "text/javascript")
 
 
 @app.post("/api/send", status_code=202)

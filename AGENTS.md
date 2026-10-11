@@ -96,7 +96,7 @@ Modular AI agent reached through chat clients. Each capability is a separate mod
 
 ## Components
 
-- **Clients**: WhatsApp, Telegram, a web app. The only way into the system. Each is registered in `clients.toml` with the URL the core POSTs replies to. Built so far: `clients/wa/` (WhatsApp) and `clients/web/` (a web chat for testing, and the demo fallback).
+- **Clients**: WhatsApp, Telegram, a web app. The only way into the system. Each is registered in `clients.toml` with the URL the core POSTs replies to. Built so far: `clients/wa/` (WhatsApp) and `clients/web/`: Wasel's public site (landing page at `/`, the chat at `/chat`) and `widget.js`, the one-line embed that puts the chat on any website (the ministry's, in the pitch; `/ministry` shows it on a demo service page). Pages can open the widget on a question with `Wasel.ask("...")`.
 - **Agent API** (`POST /agent/messages`): the webhook. Takes `account_id` + `messages[]` (debounced by the client) and returns at once; the agent's replies are POSTed to the client's `<url>/messages` as `{account_id, text}`. Only registered clients, with their client token, can call it.
 - **Media** (`POST /agent/media`): a client uploads a voice note, photo or PDF and gets back a text message to send with the user's others (see Media).
 - **Agent** (`core/agent.py`, `core/runs.py`): a LangGraph agent that runs inside the core (see Agent).
@@ -134,7 +134,7 @@ The agent reaches every module's tools through `core/tools.py`: tool names are `
 
 A LangGraph loop (`core/agent.py`): the model answers or calls tools until it answers without one. The model is `AGENT_MODEL` (any `init_chat_model` string, default `openai:gpt-6.1-sol`; OpenAI models go through the Responses API) and needs `OPENAI_API_KEY` in the root `.env`.
 
-- The system prompt is built each turn: base rules, each module's MCP `instructions`, the user's open tickets, and the resolutions of the last few archived tickets.
+- The system prompt is built each turn: base rules, each module's MCP `instructions`, the user's open tickets, and the resolutions of the last few archived tickets. Until a user has been sent a first reply (no assistant text in the chat, no archive), it also carries the welcome (`WELCOME` in `core/agent.py`): who Wasel is, what it can do (one line per loaded module), how to talk to it, and the no-diagnosis / 140 line.
 - Tools: every module's tools plus the core's own `resolve_ticket`, which closes one of this user's `awaiting_user` tickets with a `resolution`.
 - No checkpointer: the chat lives in `users.messages` as chat-completions dicts. Provider extras (OpenAI's encrypted reasoning) stay in memory for the turn and are not saved.
 - Every assistant message with text goes to the user's client as soon as the model returns it.
@@ -297,7 +297,7 @@ modules/noop/        # example module and the template for `h4h module new`
 modules/moph/        # Ministry Info: the "Knows" layer (see its README)
 modules/requests/    # Ministry Inbox: the "Does" layer: catalog.json, request tools, inbox page
 modules/bills/       # Hospital Bills: check a bill against the ministry's rules (cover.json), report charges, per-hospital view
-clients/web/         # web chat client: the page, debounce, reply callback (app/main.py, app/static/index.html)
+clients/web/         # public site + web chat: landing.html, chat.html, widget.js (embed), ministry.html (demo), logo.svg; debounce and reply callback in app/main.py
 clients/wa/          # WhatsApp client (Node, Baileys): linking, debounce, media, replies (main.js)
 migrations/          # Alembic, core tables only
 modules.toml         # module registry
@@ -306,7 +306,7 @@ sandpit/             # not part of the product: moph.gov.lb crawler and data, ev
 tests/
 ```
 
-Each module is its own uv project (own `.venv`, depends on `h4h` by path) and its UI is an npm workspace. `uv run h4h dev` runs the core on :8000, the admin panel on :5173, every local module on the ports from `modules.toml`, and every local client on the port from `clients.toml` (the web chat on :9000, WhatsApp on :9001), with merged output. A client folder with a `package.json` is a Node client and an npm workspace (`npm install` at the root installs it).
+Each module is its own uv project (own `.venv`, depends on `h4h` by path) and its UI is an npm workspace. `uv run h4h dev` runs the core on :8000, the admin panel on :5173, every local module on the ports from `modules.toml`, and every local client on the port from `clients.toml` (the site and web chat on :9000, WhatsApp on :9001), with merged output. A client folder with a `package.json` is a Node client and an npm workspace (`npm install` at the root installs it).
 
 Commands:
 

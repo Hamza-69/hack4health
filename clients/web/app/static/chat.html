@@ -1,164 +1,188 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Wasel</title>
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#0d5c48">
+<title>Wasel · واصل</title>
+<link rel="icon" href="static/logo.svg" type="image/svg+xml">
 <style>
+  /* The chat, full page at /chat and inside the widget (?embed=widget) or the landing page (?embed=inline).
+     System fonts only: it loads inside other sites, so it pulls nothing from third parties. */
   :root {
-    --bg: #f4f6f5;
-    --surface: #ffffff;
-    --text: #17201c;
-    --muted: #66726c;
-    --border: #dfe5e2;
-    --accent: #0f7b5f;
-    --accent-text: #ffffff;
-    --mine: #dff3ea;
-    --error: #b42318;
-    --error-bg: #fdecea;
-    --shadow: 0 1px 2px rgb(0 0 0 / 0.06);
-    --record: #d93025;
+    --color-paper: oklch(97.4% 0.010 90);
+    --color-surface: oklch(99.4% 0.004 90);
+    --color-ink: oklch(23% 0.035 170);
+    --color-muted: oklch(47% 0.020 165);
+    --color-rule: oklch(89% 0.012 120);
+    --color-accent: oklch(43% 0.085 168);
+    --color-accent-ink: oklch(97% 0.012 90);
+    --color-mine: oklch(93% 0.035 165);
+    --color-sand: oklch(93.5% 0.025 85);
+    --color-error: oklch(48% 0.16 28);
+    --color-error-bg: oklch(95% 0.03 28);
+    --color-record: oklch(56% 0.19 28);
+    --shadow: 0 1px 1.5px oklch(23% 0.035 170 / 0.08);
+    --font-body: system-ui, -apple-system, "Segoe UI", "Noto Sans Arabic", "Geeza Pro", "Noto Sans", sans-serif;
+    --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #0f1412;
-      --surface: #19211d;
-      --text: #e6ece9;
-      --muted: #93a19a;
-      --border: #2a3530;
-      --accent: #3fbf96;
-      --accent-text: #08130f;
-      --mine: #1d3a2f;
-      --error: #ff8a80;
-      --error-bg: #3a1d1b;
+      --color-paper: oklch(17% 0.014 170);
+      --color-surface: oklch(22% 0.016 170);
+      --color-ink: oklch(93% 0.010 100);
+      --color-muted: oklch(72% 0.016 160);
+      --color-rule: oklch(31% 0.016 170);
+      --color-accent: oklch(74% 0.110 165);
+      --color-accent-ink: oklch(18% 0.03 170);
+      --color-mine: oklch(32% 0.045 168);
+      --color-sand: oklch(30% 0.02 85);
+      --color-error: oklch(78% 0.12 28);
+      --color-error-bg: oklch(30% 0.05 28);
+      --color-record: oklch(70% 0.17 28);
       --shadow: none;
-      --record: #ff6b5e;
     }
   }
   * { box-sizing: border-box; }
-  html, body { height: 100%; margin: 0; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Arabic", sans-serif;
-  }
-  .app { display: flex; flex-direction: column; height: 100dvh; max-width: 760px; margin: 0 auto; }
+  html, body { height: 100%; margin: 0; overflow-x: clip; }
+  body { background: var(--color-paper); color: var(--color-ink); font: 15px/1.45 var(--font-body); -webkit-font-smoothing: antialiased; }
+  .app { display: flex; flex-direction: column; height: 100dvh; max-width: 780px; margin: 0 auto; }
+  .embedded .app { max-width: none; }
+  [hidden] { display: none !important; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 
   header {
-    display: flex; align-items: center; gap: 12px;
-    padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--surface);
+    display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 16px;
+    background: var(--color-surface); border-bottom: 1px solid var(--color-rule);
   }
-  .avatar {
-    width: 36px; height: 36px; border-radius: 50%; flex: none;
-    display: grid; place-items: center; background: var(--accent); color: var(--accent-text); font-weight: 700;
-  }
+  [dir="rtl"] header { padding: 10px 16px 10px 12px; }
+  .avatar { width: 38px; height: 38px; border-radius: 11px; flex: none; display: block; }
   .who { flex: 1; min-width: 0; }
-  .who h1 { font-size: 16px; margin: 0; }
-  .who p { margin: 0; font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); margin-right: 5px; vertical-align: 1px; }
-  .dot.on { background: var(--accent); }
-  button {
-    font: inherit; cursor: pointer; border-radius: 999px; border: 1px solid var(--border);
-    background: var(--surface); color: var(--text); padding: 6px 12px;
+  .who h1 { font-size: 16px; margin: 0; font-weight: 650; letter-spacing: -0.005em; }
+  .who h1 span { color: var(--color-muted); font-weight: 500; }
+  .who p { margin: 0; font-size: 12.5px; color: var(--color-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--color-muted); margin-inline-end: 6px; vertical-align: 1px; }
+  .dot.on { background: oklch(62% 0.15 150); }
+  .tool {
+    display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px; border-radius: 9px;
+    border: 1px solid transparent; background: none; color: var(--color-muted); font-size: 13px; white-space: nowrap;
+    transition: background-color 120ms var(--ease-out), color 120ms var(--ease-out);
   }
-  button:hover { border-color: var(--accent); }
+  .tool:hover { background: var(--color-paper); color: var(--color-ink); }
+  .tool:active { transform: translateY(1px); }
+  .tool.armed { color: var(--color-error); border-color: currentColor; }
+  .tool.icon { width: 34px; padding: 0; justify-content: center; }
 
-  main { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 6px; }
+  main { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 6px; overscroll-behavior: contain; }
 
-  .empty { margin: auto 0; text-align: center; color: var(--muted); padding: 24px 0; }
-  .empty h2 { color: var(--text); font-size: 18px; margin: 0 0 6px; }
-  .empty p { margin: 0 auto 16px; max-width: 460px; font-size: 14px; }
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
-  .chips button { font-size: 13.5px; }
+  .welcome { margin: auto 0; padding: 20px 4px; display: grid; gap: 14px; justify-items: center; text-align: center; }
+  .welcome img { width: 56px; height: 56px; border-radius: 16px; }
+  .welcome h2 { margin: 0; font-size: 19px; letter-spacing: -0.01em; }
+  .welcome p { margin: 0; max-width: 420px; color: var(--color-muted); font-size: 14px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 560px; }
+  .chips button {
+    font-size: 13.5px; line-height: 1.35; text-align: start; padding: 8px 12px; border-radius: 12px;
+    border: 1px solid var(--color-rule); background: var(--color-surface); max-width: 100%;
+    transition: border-color 120ms var(--ease-out), background-color 120ms var(--ease-out);
+  }
+  .chips button:hover { border-color: var(--color-accent); }
+  .chips button:active { background: var(--color-mine); }
+  .fine { font-size: 12px !important; max-width: 380px; }
 
-  .msg { max-width: min(80%, 560px); padding: 8px 12px; border-radius: 14px; box-shadow: var(--shadow);
+  .msg { max-width: min(82%, 560px); padding: 8px 12px 6px; border-radius: 14px; box-shadow: var(--shadow);
          white-space: pre-wrap; overflow-wrap: anywhere; }
-  .msg a { color: var(--accent); }
-  .me { align-self: flex-end; background: var(--mine); border-bottom-right-radius: 4px; }
-  .agent { align-self: flex-start; background: var(--surface); border-bottom-left-radius: 4px; }
-  .meta { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; text-align: end; }
-  .failed .meta { color: var(--error); }
-  .error { align-self: center; max-width: 90%; font-size: 13px; color: var(--error); background: var(--error-bg);
-           padding: 6px 12px; border-radius: 8px; text-align: center; }
+  .msg a { color: var(--color-accent); text-underline-offset: 2px; }
+  .me { align-self: flex-end; background: var(--color-mine); border-end-end-radius: 4px; }
+  .agent { align-self: flex-start; background: var(--color-surface); border-end-start-radius: 4px; }
+  .meta { display: block; font-size: 11px; color: var(--color-muted); margin-top: 2px; text-align: end; font-variant-numeric: tabular-nums; }
+  .failed .meta { color: var(--color-error); }
+  .notice { align-self: center; max-width: 92%; font-size: 13px; color: var(--color-error); background: var(--color-error-bg);
+            padding: 7px 12px; border-radius: 10px; text-align: center; }
   .gap { margin-top: 8px; }
+  .msg img { display: block; max-width: 100%; width: 240px; max-height: 320px; object-fit: cover; border-radius: 10px;
+             margin: 2px 0 4px; background: var(--color-rule); }
+  .msg .label { font-weight: 600; }
+  .msg .note { display: block; font-size: 13px; color: var(--color-muted); margin-top: 2px; }
+  .msg .note.quote { font-style: italic; }
 
-  .typing { align-self: flex-start; background: var(--surface); padding: 12px 14px; border-radius: 14px;
-            border-bottom-left-radius: 4px; box-shadow: var(--shadow); display: flex; gap: 4px; }
-  .typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); animation: blink 1.2s infinite; }
+  .typing { align-self: flex-start; background: var(--color-surface); padding: 12px 14px; border-radius: 14px;
+            border-end-start-radius: 4px; box-shadow: var(--shadow); display: flex; gap: 4px; }
+  .typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--color-muted); animation: blink 1.2s infinite; }
   .typing span:nth-child(2) { animation-delay: 0.2s; }
   .typing span:nth-child(3) { animation-delay: 0.4s; }
   @keyframes blink { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
 
   form {
-    display: flex; gap: 8px; align-items: flex-end;
-    padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); background: var(--surface);
+    display: flex; gap: 8px; align-items: flex-end; background: var(--color-surface);
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--color-rule);
   }
   textarea {
-    flex: 1; resize: none; max-height: 160px; overflow-y: hidden; font: inherit; color: var(--text); background: var(--bg);
-    border: 1px solid var(--border); border-radius: 20px; padding: 9px 14px; outline: none;
+    flex: 1; min-width: 0; resize: none; max-height: 160px; overflow-y: hidden; font: inherit; color: var(--color-ink);
+    background: var(--color-paper); border: 1px solid var(--color-rule); border-radius: 20px; padding: 9px 14px; outline: none;
   }
-  textarea:focus { border-color: var(--accent); }
-  form button { background: var(--accent); color: var(--accent-text); border: none; width: 40px; height: 40px; padding: 0;
-                display: grid; place-items: center; flex: none; }
-  form button:disabled { opacity: 0.4; cursor: default; }
-  form button.ghost { background: transparent; color: var(--muted); }
-  form button.ghost:hover { color: var(--accent); }
-  form button.recording-on { background: var(--record); color: #fff; }
-  [hidden] { display: none !important; }
+  textarea:focus { border-color: var(--color-accent); }
+  textarea::placeholder { color: var(--color-muted); }
+  form > button { width: 40px; height: 40px; padding: 0; border: none; border-radius: 50%; display: grid; place-items: center; flex: none;
+                  background: var(--color-accent); color: var(--color-accent-ink); transition: opacity 120ms var(--ease-out); }
+  form > button:active { transform: scale(0.96); }
+  form > button:disabled { opacity: 0.4; cursor: default; }
+  form > button.ghost { background: transparent; color: var(--color-muted); }
+  form > button.ghost:hover { color: var(--color-accent); }
+  form > button.recording-on { background: var(--color-record); color: var(--color-accent-ink); }
+  [dir="rtl"] #send svg { transform: scaleX(-1); }
   .recording { flex: 1; display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 14px;
-               border: 1px solid var(--border); border-radius: 20px; background: var(--bg); }
-  .recording .rec-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--record); animation: blink 1.2s infinite; }
+               border: 1px solid var(--color-rule); border-radius: 20px; background: var(--color-paper); }
+  .recording .rec-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--color-record); animation: blink 1.2s infinite; }
   .recording span { flex: 1; font-variant-numeric: tabular-nums; }
-  .recording button { width: auto; height: auto; background: none; color: var(--muted); padding: 2px 4px; font-size: 13.5px; }
-
-  .msg img { display: block; max-width: 100%; width: 240px; max-height: 320px; object-fit: cover; border-radius: 10px;
-             margin: 2px 0 4px; background: var(--border); }
-  .msg .label { font-weight: 600; }
-  .msg .note { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
-  .msg .note.quote { font-style: italic; }
+  .recording button { background: none; border: none; color: var(--color-muted); padding: 2px 4px; font-size: 13.5px; }
+  .disclaimer { margin: 0; padding: 0 16px 8px; background: var(--color-surface); color: var(--color-muted); font-size: 11.5px; text-align: center; }
+  @media (prefers-reduced-motion: reduce) { .typing span, .recording .rec-dot { animation: none; opacity: 0.6; } }
 </style>
 </head>
 <body>
 <div class="app">
   <header>
-    <div class="avatar" aria-hidden="true">و</div>
+    <img class="avatar" src="static/logo.svg" alt="">
     <div class="who">
-      <h1>Wasel · واصل</h1>
-      <p><span class="dot" id="dot"></span><span id="status">connecting…</span></p>
+      <h1>Wasel <span>· واصل</span></h1>
+      <p><span class="dot" id="dot"></span><span id="status" aria-live="polite"></span></p>
     </div>
-    <button id="reset" type="button" title="Start over as a brand new user">New chat</button>
+    <button id="reset" class="tool" type="button"></button>
+    <button id="close" class="tool icon" type="button" hidden>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
   </header>
 
   <main id="list" aria-live="polite"></main>
 
   <form id="composer">
-    <button id="attach" class="ghost" type="button" aria-label="Send a photo or PDF" title="Send a photo or PDF">
+    <button id="attach" class="ghost" type="button">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m21 11.5-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l8.6-8.6a3.7 3.7 0 0 1 5.2 5.2l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l8-8"/></svg>
     </button>
     <input id="file" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" hidden>
     <div id="recording" class="recording" hidden>
       <i class="rec-dot" aria-hidden="true"></i><span id="rec-time">0:00</span>
-      <button id="rec-cancel" type="button">Cancel</button>
+      <button id="rec-cancel" type="button"></button>
     </div>
-    <textarea id="input" rows="1" placeholder="Message" dir="auto" aria-label="Message"></textarea>
-    <button id="send" type="submit" aria-label="Send" hidden>
+    <textarea id="input" rows="1" dir="auto"></textarea>
+    <button id="send" type="submit" hidden>
       <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.4 20.4 21 12 3.4 3.6 3.4 10l12.6 2-12.6 2z"/></svg>
     </button>
-    <button id="mic" type="button" aria-label="Record a voice note" title="Record a voice note">
+    <button id="mic" type="button">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 15a3.5 3.5 0 0 0 3.5-3.5v-6a3.5 3.5 0 0 0-7 0v6A3.5 3.5 0 0 0 12 15Zm6-3.5a1 1 0 1 0-2 0 4 4 0 0 1-8 0 1 1 0 1 0-2 0 6 6 0 0 0 5 5.9V20H8.5a1 1 0 1 0 0 2h7a1 1 0 1 0 0-2H13v-2.6a6 6 0 0 0 5-5.9Z"/></svg>
     </button>
   </form>
+  <p class="disclaimer" id="disclaimer"></p>
 </div>
 
 <script>
-const ACCOUNT_KEY = "h4h.web.account";
-const SUGGESTIONS = [
-  "What can you help me with?",
-  "My dad needs a hernia operation, does the ministry cover it? We're Lebanese with no insurance.",
-  "How much is Panadol, and is there a cheaper equivalent?",
-  "شو رقم الخط الساخن لوزارة الصحة؟",
-  "kifak, fi mestashfa 7ekoumi b Saida?",
-];
+const params = new URLSearchParams(location.search);
+const EMBED = params.get("embed");  // "widget" (has a close button) or "inline" (inside the landing page)
+const NS = (params.get("ns") || "").replace(/[^a-z0-9-]/gi, "");  // a separate conversation per demo frame
+const ACCOUNT_KEY = "h4h.web.account" + (NS ? `.${NS}` : "");
+const LANG_KEY = "wasel.lang";
 
 const store = {
   get(key) { try { return localStorage.getItem(key); } catch { return null; } },
@@ -166,17 +190,86 @@ const store = {
   remove(key) { try { localStorage.removeItem(key); } catch {} },
 };
 
+const TEXT = {
+  en: {
+    subtitle: "Ministry of Public Health assistant",
+    connecting: "connecting…", online: "online", reconnecting: "reconnecting…",
+    newChat: "New chat", confirmNew: "Tap again to start over", close: "Close the chat",
+    attach: "Send a photo or PDF", send: "Send", record: "Record a voice note", stopRecord: "Send the voice note",
+    cancel: "Cancel", placeholder: "Ask about ministry services…", typing: "Wasel is typing",
+    welcomeTitle: "Ask about the Ministry of Public Health",
+    welcomeBody: "Services and how to apply, what the ministry covers, medicine prices, hospitals and health centres. Write in Arabic, English or Arabizi, or send a voice note.",
+    fine: "Answers come from moph.gov.lb. Wasel never gives a diagnosis.",
+    disclaimer: "Answers from moph.gov.lb · not a diagnosis · emergency: Red Cross 140",
+    voice: "Voice note", document: "Document", photo: "Photo", reading: "reading…", notSent: "not sent",
+    errReach: "Wasel can't be reached right now. Please try again in a moment.",
+    errSend: "Your message didn't go through. Check your connection and try again.",
+    errMedia: (kind) => `The ${kind} couldn't be sent. Try again, or send a different file.`,
+    errMic: "The microphone isn't available. Allow microphone access, or type instead.",
+    suggestions: [
+      "What can you help me with?",
+      "My dad needs an operation and has no insurance. Does the ministry cover it?",
+      "How much is Panadol, and is there a cheaper equivalent?",
+      "Government hospitals near Saida",
+      "kifak, chou fik tsa3edne?",
+    ],
+  },
+  ar: {
+    subtitle: "مساعد وزارة الصحة العامة",
+    connecting: "عم يتّصل…", online: "متّصل", reconnecting: "عم يعيد الاتصال…",
+    newChat: "محادثة جديدة", confirmNew: "اضغط مرة تانية لتبدأ من جديد", close: "سكّر المحادثة",
+    attach: "ابعت صورة أو PDF", send: "إرسال", record: "سجّل رسالة صوتية", stopRecord: "ابعت الرسالة الصوتية",
+    cancel: "إلغاء", placeholder: "اسأل عن خدمات الوزارة…", typing: "واصل عم يكتب",
+    welcomeTitle: "اسأل عن وزارة الصحة العامة",
+    welcomeBody: "الخدمات وكيف تقدّم، شو بتغطّي الوزارة، أسعار الأدوية، المستشفيات والمراكز الصحية. اكتب بالعربي أو الإنكليزي أو بالأحرف اللاتينية، أو ابعت رسالة صوتية.",
+    fine: "الأجوبة من موقع الوزارة moph.gov.lb. واصل ما بيعطي تشخيص طبي.",
+    disclaimer: "الأجوبة من moph.gov.lb · مش تشخيص طبي · للطوارئ: الصليب الأحمر 140",
+    voice: "رسالة صوتية", document: "مستند", photo: "صورة", reading: "عم يقرأ…", notSent: "ما انبعتت",
+    errReach: "ما فينا نوصل لواصل هلّق. جرّب كمان شوي.",
+    errSend: "ما انبعتت رسالتك. تأكد من الاتصال وجرّب مرة تانية.",
+    errMedia: () => "ما انبعت الملف. جرّب مرة تانية أو ابعت ملف تاني.",
+    errMic: "الميكروفون مش متاح. اسمح باستعماله أو اكتب رسالتك.",
+    suggestions: [
+      "شو فيك تساعدني؟",
+      "بيي بدو عملية وما عندو ضمان، الوزارة بتغطّي؟",
+      "قديش سعر البنادول؟ وفي بديل أرخص؟",
+      "شو رقم الخط الساخن لوزارة الصحة؟",
+      "kifak, fi mestashfa 7ekoumi b Saida?",
+    ],
+  },
+};
+
+const LANGS = ["ar", "en"];
+const lang = LANGS.includes(params.get("lang")) ? params.get("lang")
+  : LANGS.includes(store.get(LANG_KEY)) ? store.get(LANG_KEY)
+  : (navigator.language || "").toLowerCase().startsWith("ar") ? "ar" : "en";
+const t = TEXT[lang];
+document.documentElement.lang = lang;
+document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+if (EMBED) document.documentElement.classList.add("embedded");
+
 let account = store.get(ACCOUNT_KEY) || newAccount();
 let chat = loadChat();
-let typing = false, typingTimer = null, source = null;
+let typing = false, typingTimer = null, source = null, online = false;
 let outbox = Promise.resolve();  // sends go out one at a time, so the agent gets them in order
 let recorder = null, recordCancelled = false, recordStarted = 0, recordTimer = null;
+let resetArmed = null;
 
-const list = document.getElementById("list");
-const input = document.getElementById("input");
-const sendButton = document.getElementById("send");
-const micButton = document.getElementById("mic");
-const fileInput = document.getElementById("file");
+const $ = (id) => document.getElementById(id);
+const list = $("list"), input = $("input"), sendButton = $("send"), micButton = $("mic"), fileInput = $("file");
+
+function label(el, text) { el.setAttribute("aria-label", text); el.title = text; }
+function applyText() {
+  $("disclaimer").textContent = t.disclaimer;
+  $("reset").textContent = resetArmed ? t.confirmNew : t.newChat;
+  $("reset").classList.toggle("armed", !!resetArmed);
+  $("rec-cancel").textContent = t.cancel;
+  input.placeholder = t.placeholder;
+  label(input, t.placeholder);
+  label($("attach"), t.attach);
+  label(sendButton, t.send);
+  label($("close"), t.close);
+}
 
 function newAccount() {
   const id = crypto.randomUUID();
@@ -189,17 +282,22 @@ function loadChat() {
 }
 function saveChat() { store.set(chatKey(), JSON.stringify(chat.slice(-500))); }
 
-function setStatus(text, online) {
-  document.getElementById("status").textContent = text;
-  document.getElementById("dot").classList.toggle("on", online);
+function setStatus(state) {
+  online = state === "online";
+  $("status").textContent = online ? `${t.subtitle} · ${t.online}` : t[state];
+  $("dot").classList.toggle("on", online);
+}
+
+function tellParent(type, extra = {}) {
+  if (EMBED && parent !== window) parent.postMessage({ type: `wasel:${type}`, ...extra }, "*");
 }
 
 function connect() {
   if (source) source.close();
-  setStatus("connecting…", false);
+  setStatus("connecting");
   source = new EventSource(`api/events?account_id=${account}`);
-  source.onopen = () => setStatus(`online · you are web:${account.slice(0, 8)}`, true);
-  source.onerror = () => setStatus("reconnecting…", false);
+  source.onopen = () => setStatus("online");
+  source.onerror = () => setStatus("reconnecting");
   source.onmessage = (e) => handle(JSON.parse(e.data));
 }
 
@@ -210,10 +308,12 @@ function handle(event) {
   } else if (event.type === "reply") {
     setTyping(false);
     add({ who: "agent", text: event.text });
+    tellParent("reply");
   } else if (event.type === "error") {
+    console.warn("Wasel:", event.text);
     mark("pending", "failed");
     setTyping(false);
-    add({ who: "error", text: event.text });
+    add({ who: "notice", text: t.errReach });
   }
 }
 
@@ -261,8 +361,9 @@ function send(text) {
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
     } catch (e) {
+      console.warn("Wasel: send failed", e);
       mark("pending", "failed");
-      add({ who: "error", text: `Could not send: ${e.message}` });
+      add({ who: "notice", text: t.errSend });
     }
   });
 }
@@ -282,11 +383,12 @@ function sendFile(file, kind) {
       const response = await fetch("api/media", { method: "POST", body: form });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.detail || `HTTP ${response.status}`);
-      const [, tag, link, note] = body.message.match(/^\[(voice note|photo|document)(?: (\S+))?\] ?([\s\S]*)$/) || [];
+      const [, , link, note] = body.message.match(/^\[(voice note|photo|document)(?: (\S+))?\] ?([\s\S]*)$/) || [];
       update(entry, { state: "pending", note: note ?? body.message, src: link || (kind === "photo" ? entry.src : null) });
     } catch (e) {
+      console.warn("Wasel: upload failed", e);
       update(entry, { state: "failed" });
-      add({ who: "error", text: `Could not send the ${kind === "voice" ? "voice note" : kind}: ${e.message}` });
+      add({ who: "notice", text: t.errMedia(kind === "voice" ? "voice note" : kind) });
     }
   });
 }
@@ -302,15 +404,16 @@ async function startRecording() {
   try {
     stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   } catch (e) {
-    add({ who: "error", text: `The microphone is not available: ${e.message}` });
+    console.warn("Wasel: microphone", e);
+    add({ who: "notice", text: t.errMic });
     return;
   }
-  const mimeType = ["audio/webm;codecs=opus", "audio/mp4", "audio/ogg;codecs=opus"].find((t) => MediaRecorder.isTypeSupported(t));
+  const mimeType = ["audio/webm;codecs=opus", "audio/mp4", "audio/ogg;codecs=opus"].find((type) => MediaRecorder.isTypeSupported(type));
   const chunks = [];
   recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
   recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
   recorder.onstop = () => {
-    stream.getTracks().forEach((t) => t.stop());
+    stream.getTracks().forEach((track) => track.stop());
     const type = recorder.mimeType || mimeType || "audio/webm";
     const long = Date.now() - recordStarted > 700;
     recorder = null;
@@ -335,18 +438,17 @@ function stopRecording(cancel) {
 function updateComposer() {
   const recording = !!recorder;
   const hasText = !!input.value.trim();
-  document.getElementById("recording").hidden = !recording;
-  document.getElementById("attach").hidden = recording;
+  $("recording").hidden = !recording;
+  $("attach").hidden = recording;
   input.hidden = recording;
   sendButton.hidden = recording || !hasText;
   sendButton.disabled = !hasText;
   micButton.hidden = !recording && hasText;
   micButton.classList.toggle("recording-on", recording);
-  micButton.setAttribute("aria-label", recording ? "Send the voice note" : "Record a voice note");
-  micButton.title = micButton.getAttribute("aria-label");
+  label(micButton, recording ? t.stopRecord : t.record);
   if (recording) {
     const seconds = Math.floor((Date.now() - recordStarted) / 1000);
-    document.getElementById("rec-time").textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+    $("rec-time").textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
   }
 }
 
@@ -362,6 +464,7 @@ function linkified(text) {
     a.textContent = match[0];
     a.target = "_blank";
     a.rel = "noopener noreferrer";
+    a.dir = "ltr";
     fragment.append(a);
     last = match.index + match[0].length;
   }
@@ -375,13 +478,13 @@ function content(m) {
   if (m.kind === "photo" && m.src) {
     const img = document.createElement("img");
     img.src = m.src;
-    img.alt = m.note || "Photo";
+    img.alt = m.note || t.photo;
     parts.push(img);
   } else {
-    const label = document.createElement("span");
-    label.className = "label";
-    label.textContent = m.kind === "voice" ? "🎤 Voice note" : `📄 ${m.name || "Document"}`;
-    parts.push(label);
+    const name = document.createElement("span");
+    name.className = "label";
+    name.textContent = m.kind === "voice" ? `🎤 ${t.voice}` : `📄 ${m.name || t.document}`;
+    parts.push(name);
   }
   if (m.note) {
     const note = document.createElement("span");
@@ -392,59 +495,63 @@ function content(m) {
   return parts;
 }
 
-const TICKS = { reading: "reading…", pending: "🕓", delivered: "✓✓", failed: "not sent" };
+function welcome() {
+  const box = document.createElement("div");
+  box.className = "welcome";
+  const logo = Object.assign(document.createElement("img"), { src: "static/logo.svg", alt: "" });
+  const title = Object.assign(document.createElement("h2"), { textContent: t.welcomeTitle });
+  const body = Object.assign(document.createElement("p"), { textContent: t.welcomeBody });
+  const chips = document.createElement("div");
+  chips.className = "chips";
+  for (const s of t.suggestions) {
+    const b = Object.assign(document.createElement("button"), { type: "button", dir: "auto", textContent: s });
+    b.onclick = () => send(s);
+    chips.append(b);
+  }
+  const fine = Object.assign(document.createElement("p"), { className: "fine", textContent: t.fine });
+  box.append(logo, title, body, chips, fine);
+  return box;
+}
+
+const TICKS = { pending: "🕓", delivered: "✓✓" };
 
 function render() {
   list.replaceChildren();
   if (chat.length === 0 && !typing) {
-    const empty = document.createElement("div");
-    empty.className = "empty";
-    empty.innerHTML = `<h2>Ask Wasel</h2>
-      <p>Ask about the Ministry of Public Health in English, Arabic or Arabizi, by text or voice note.
-      Send photos of your papers when Wasel asks for them.</p>`;
-    const chips = document.createElement("div");
-    chips.className = "chips";
-    for (const s of SUGGESTIONS) {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.dir = "auto";
-      b.textContent = s;
-      b.onclick = () => send(s);
-      chips.append(b);
-    }
-    empty.append(chips);
-    list.append(empty);
+    list.append(welcome());
     return;
   }
   let previous = null;
   for (const m of chat) {
     const el = document.createElement("div");
-    el.className = `msg ${m.who}` + (m.state === "failed" ? " failed" : "");
-    if (m.who === "error") el.className = "error";
-    if (previous && previous !== m.who) el.classList.add("gap");
+    const who = m.who === "error" ? "notice" : m.who;  // "error" in chats saved by older versions
+    el.className = who === "notice" ? "notice" : `msg ${who}` + (m.state === "failed" ? " failed" : "");
+    if (previous && previous !== who) el.classList.add("gap");
     el.dir = "auto";
     el.append(...content(m));
-    if (m.who !== "error") {
+    if (who !== "notice") {
       const meta = document.createElement("span");
       meta.className = "meta";
-      const time = new Date(m.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-      meta.textContent = m.who === "me" ? `${time} ${TICKS[m.state] || ""}` : time;
+      const time = new Date(m.at).toLocaleTimeString(lang === "ar" ? "ar-LB" : [], { hour: "2-digit", minute: "2-digit" });
+      const tick = { reading: t.reading, failed: t.notSent }[m.state] || TICKS[m.state] || "";
+      meta.textContent = who === "me" ? `${time} ${tick}` : time;
       el.append(meta);
     }
     list.append(el);
-    previous = m.who;
+    previous = who;
   }
   if (typing) {
     const dots = document.createElement("div");
     dots.className = "typing gap";
-    dots.setAttribute("aria-label", "The agent is typing");
+    dots.setAttribute("role", "status");
+    dots.setAttribute("aria-label", t.typing);
     dots.innerHTML = "<span></span><span></span><span></span>";
     list.append(dots);
   }
   list.scrollTop = list.scrollHeight;
 }
 
-document.getElementById("composer").addEventListener("submit", (e) => {
+$("composer").addEventListener("submit", (e) => {
   e.preventDefault();
   const text = input.value;
   input.value = "";
@@ -455,7 +562,7 @@ document.getElementById("composer").addEventListener("submit", (e) => {
 input.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
     e.preventDefault();
-    document.getElementById("composer").requestSubmit();
+    $("composer").requestSubmit();
   }
 });
 function resize() {
@@ -465,26 +572,48 @@ function resize() {
   updateComposer();
 }
 input.addEventListener("input", resize);
-document.getElementById("attach").addEventListener("click", () => fileInput.click());
+$("attach").addEventListener("click", () => fileInput.click());
 fileInput.addEventListener("change", pickFile);
 micButton.addEventListener("click", () => (recorder ? stopRecording(false) : startRecording()));
-document.getElementById("rec-cancel").addEventListener("click", () => stopRecording(true));
+$("rec-cancel").addEventListener("click", () => stopRecording(true));
 
-document.getElementById("reset").addEventListener("click", () => {
-  if (!confirm("Start over as a brand new user? The agent will not know this chat.")) return;
+// Starting over forgets this browser's account, so it asks for a second tap instead of a dialog.
+$("reset").addEventListener("click", () => {
+  if (!resetArmed) {
+    resetArmed = setTimeout(() => { resetArmed = null; applyText(); }, 3000);
+    applyText();
+    return;
+  }
+  clearTimeout(resetArmed);
+  resetArmed = null;
   store.remove(chatKey());
   account = newAccount();
   chat = [];
   setTyping(false);
+  applyText();
   connect();
 });
 
+if (EMBED === "widget") {
+  $("close").hidden = false;
+  $("close").addEventListener("click", () => tellParent("close"));
+}
+// The page around the widget can open it on a question ("Ask Wasel about this service").
+window.addEventListener("message", (e) => {
+  if (e.source !== parent || !e.data || typeof e.data !== "object") return;
+  if (e.data.type === "wasel:ask" && typeof e.data.text === "string") send(e.data.text.slice(0, 1000));
+  if (e.data.type === "wasel:focus") input.focus({ preventScroll: true });
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") tellParent("close"); });
+
 // Previews of photos still uploading when the page closed are gone; their sends did not finish.
 chat.forEach((m) => { if (m.state === "reading") { m.state = "failed"; if (m.src?.startsWith("blob:")) m.src = null; } });
+applyText();
 render();
 updateComposer();
 connect();
-input.focus();
+if (!EMBED) input.focus();  // inside another page, focusing would scroll that page to the frame
+tellParent("ready");
 </script>
 </body>
 </html>
