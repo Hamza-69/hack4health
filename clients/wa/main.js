@@ -149,21 +149,24 @@ async function accountOf(key) {
 // A function that turns the message into texts for the agent, or null to ignore the message.
 function reader(content, m) {
   if (!content) return null
-  switch (getContentType(content)) {
+  const type = getContentType(content)
+  const tag = forwarded(content[type]?.contextInfo)
+  const text = t => t && tag + t
+  switch (type) {
     case 'conversation':
       return async () => [content.conversation]
     case 'extendedTextMessage':
-      return async () => [content.extendedTextMessage.text]
+      return async () => [text(content.extendedTextMessage.text)]
     case 'audioMessage':
       return async () => [await upload(m, content.audioMessage.mimetype, 'voice note')]
     case 'imageMessage':
-      return async () => [await upload(m, content.imageMessage.mimetype, 'photo'), content.imageMessage.caption]
+      return async () => [await upload(m, content.imageMessage.mimetype, 'photo'), text(content.imageMessage.caption)]
     case 'documentMessage': {
       const { mimetype, caption, fileName } = content.documentMessage
       if (!/^(application\/pdf|image\/(jpeg|png|webp))/.test(mimetype ?? '')) {
-        return async () => [`[file ${fileName ?? ''} — can't be opened: only photos and PDFs]`, caption]
+        return async () => [`[file ${fileName ?? ''} — can't be opened: only photos and PDFs]`, text(caption)]
       }
-      return async () => [await upload(m, mimetype, 'document'), caption]
+      return async () => [await upload(m, mimetype, 'document'), text(caption)]
     }
     case 'locationMessage':
     case 'liveLocationMessage': {
@@ -172,13 +175,21 @@ function reader(content, m) {
     }
     case 'videoMessage':
     case 'ptvMessage':
-      return async () => ['[video — can\'t be opened: only voice notes, photos and PDFs]', content.videoMessage?.caption]
+      return async () => ['[video — can\'t be opened: only voice notes, photos and PDFs]', text(content.videoMessage?.caption)]
     case 'contactMessage':
     case 'contactsArrayMessage':
       return async () => ['[contact card — can\'t be opened]']
     default:
       return null
   }
+}
+
+// WhatsApp's own labels, so the agent checks forwarded claims against what the ministry published.
+// A plain `conversation` text has no contextInfo: WhatsApp sends forwarded texts as extendedTextMessage.
+function forwarded(info) {
+  const score = info?.forwardingScore ?? 0
+  if (score >= 5) return '[forwarded many times] '
+  return info?.isForwarded || score > 0 ? '[forwarded] ' : ''
 }
 
 async function upload(m, mimetype, kind) {

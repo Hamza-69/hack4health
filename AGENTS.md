@@ -87,6 +87,7 @@ Out of scope: medicine-arrival alerts, and actions for NSSF or private insurance
 | Follows up | core tickets, `notify`, `resolve_ticket`, `requests__request_status` | Built. Deadline escalation not built (overdue requests are flagged in the inbox) |
 | Ministry inbox | admin panel → Ministry Inbox | Built: live queue, filled form, documents, Approve / Ask for more / Decline that reach the user in seconds |
 | What people are asking | moph admin page: Unanswered, Searches | First version built |
+| Rumour check | `clients/wa/` (`[forwarded]` tag), moph `report_claim` and rule 11 | Built: a forwarded or pasted claim gets confirmed / contradicted / not found, with the official link and date, or 1214. Every check is logged; near-duplicates are counted together on moph admin page → Rumours |
 | Hospital bills | `modules/bills/` | Built: checks a bill against the ministry's dated rules and the 14 Mar 2026 list of 77 hospitals bound to 100% cover, reports a covered patient charged anyway (R-numbers), desk page with per-hospital evidence. See its README |
 | Clients | `clients/` | WhatsApp (`clients/wa/`, a number linked by QR code) and the web chat (`clients/web/`). Both take text, voice notes, photos and PDFs |
 

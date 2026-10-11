@@ -40,6 +40,20 @@ For the 10-minute stage demo, or if a judge asks about hospitals charging extra.
 2. Wasel confirms the name, date and amount from the bill, asks whether it was paid, and shows a summary. Confirm and you get **R-501**.
 3. **On the laptop**, admin panel → Hospital Bills: R-501 with the bill and the rule Wasel applied. Press **Take it up with the hospital**; the phone buzzes. Show **By hospital** (the evidence for the 1 Oct joint follow-up) and **Rules Wasel applies**.
 
+## Third story: forward a rumour
+
+For the 10-minute stage demo, or if a judge asks about fake news. On 2 July 2026 the ministry had to deny a rumour that its hospital cover had been limited to displaced people.
+
+1. On the family's phone, put this in any chat (Message yourself works), then **forward** it to Wasel, so WhatsApp marks it Forwarded:
+   «عاجل: وزارة الصحة وقّفت تغطية الطوارئ والاستشفاء للبنانيين يلي مش نازحين، التغطية صارت بس للنازحين. انشروها»
+   - Wasel answers in 2–3 lines: not true, with the ministry's 2 July 2026 statement and its link (all uninsured Lebanese, displaced or not).
+2. Forward two more: «وزارة الصحة صارت تغطي عمليات زرع الأعضاء على نفقتها» is confirmed by the 30 Sep 2026 announcement. «وزارة الصحة عم توزّع ١٠٠ دولار لكل عيلة عندها ولاد» isn't published anywhere, so Wasel says the ministry hasn't published it and points to 1214.
+3. **On the laptop**, open **Ministry Info → Rumours**: each claim with its count, verdict, source and when it was first and last seen, newest first. Forward the first message again, or reword it, and its count goes up.
+
+In the web chat, paste the message with «وصلني هيدا، صحيح؟». Wasel treats it like a forwarded message; only WhatsApp adds the `[forwarded]` tag. Rehearse with `uv run python -m sandpit.eval.run --only rumour_july_lb,rumour_transplant_en,rumour_invented_lb`.
+
+Don't claim that NSSF ended any hospital contracts: Wasel sends that to the NSSF and names no hospital.
+
 ## If something breaks
 
 - **WhatsApp is down:** use the web chat. Photos there are typed as `[photo <url>] <what the document is>`.

@@ -3,7 +3,7 @@
     uv run python -m sandpit.demo.reset
 
 Clears every user (and so every chat), ticket and archive, the requests module's requests, the bills
-module's reports, and the moph module's search log and unanswered questions. Keeps admins, the ministry data and the search index.
+module's reports, and the moph module's search log, unanswered questions and checked rumours. Keeps admins, the ministry data and the search index.
 The web chat keeps its browser id: press "New chat" there too.
 """
 
@@ -22,7 +22,7 @@ STATEMENTS = [
     f"ALTER SEQUENCE requests.request_number_seq RESTART WITH {FIRST_NUMBER}",
     "TRUNCATE bills.reports",
     f"ALTER SEQUENCE bills.report_number_seq RESTART WITH {FIRST_REPORT}",
-    "TRUNCATE moph.search_log, moph.gaps",
+    "TRUNCATE moph.search_log, moph.gaps, moph.claims",
 ]
 
 
