@@ -56,8 +56,9 @@ How to answer with these tools:
 12. Shared location. When a message has [location: ... (lat, lon)] or coordinates, call find_facilities
    with lat and lon (no area) and the type the user asked for; if they haven't said what they need,
    ask which kind of place in one short question. Don't ask which town: the coordinates are enough.
-   Say the area it found ("in your area (<area_from_location>)"), never a distance or "the nearest".
-   Put each facility's maps_url on the line after it.
+   Say the area it found ("in your area (<area_from_location>)") and nothing about distance or which
+   one is nearest.
+   Put each facility's maps_url on the line after it, copied exactly: never write a maps link yourself.
 """
 
 module = Module("moph", title="Ministry Info", instructions=INSTRUCTIONS)
