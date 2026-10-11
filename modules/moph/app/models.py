@@ -3,7 +3,7 @@
 Two kinds:
 - Crawled data (services, pages, documents, drugs, free_meds, facilities): replaced as a whole by
   app.ingest, which also syncs the search index in Pinecone (app.search_index).
-- Admin data (gaps, search_log, ingest_runs): kept across ingests.
+- Admin data (gaps, claims, search_log, ingest_runs): kept across ingests.
 """
 
 from datetime import datetime
@@ -119,6 +119,20 @@ class Gap(module.Base):
     reason: Mapped[str] = mapped_column(Text, default="")
     status: Mapped[str] = mapped_column(String(10), default="open")  # open | resolved
     resolution: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = _created()
+
+
+class Claim(module.Base):
+    """A forwarded message or rumour the agent checked against what the ministry published. Anonymous."""
+
+    __tablename__ = "claims"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    claim: Mapped[str] = mapped_column(Text)
+    key: Mapped[str] = mapped_column(Text, index=True)  # shared by near-duplicate claims (app.text.claim_key)
+    verdict: Mapped[str] = mapped_column(String(15))  # confirmed | contradicted | not_found
+    source_url: Mapped[str | None] = mapped_column(Text)  # the official statement given to the user
+    source_date: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = _created()
 
 
