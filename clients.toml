@@ -1,0 +1,6 @@
+# Chat clients allowed to call the agent API (POST /agent/messages). One table per app: wa, tg or web.
+#   url   the client's service; the core POSTs the agent's replies to <url>/messages
+# `uv run h4h init` writes each local client's token to clients/<app>/.env. Removing a client revokes it.
+
+[web]
+url = "http://localhost:9000"  # clients/web: a test chat page at this address

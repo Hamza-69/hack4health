@@ -6,7 +6,7 @@ import jwt
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import func, select
 
-from core import tokens
+from core import runs, tokens
 from core.auth import DB, CurrentModule
 from core.chat import lock_user
 from core.models import Ticket, TicketStatus
@@ -71,19 +71,16 @@ async def update_ticket(
 
 @router.post("/tickets/{ticket_id}/notify")
 async def notify(ticket_id: uuid.UUID, body: NotifyIn, module: CurrentModule, session: DB) -> TicketOut:
-    """A supplier update for the user. Lands in the chat as a tagged message.
+    """A supplier update for the user: a tagged message for the agent, which tells the user.
 
-    TODO(webhook): start the agent if idle, or queue the message if a run is active;
-    after 24h send the module's WhatsApp template instead.
+    TODO: after 24h without a message from the user, send the module's WhatsApp template instead.
     """
     ticket = await _own_ticket(session, module, ticket_id)
     if ticket.status not in (TicketStatus.ACTIVE, TicketStatus.AWAITING_USER):
         raise HTTPException(409, f"ticket is {ticket.status}")
     user = await lock_user(session, ticket.user_id)
-    user.messages.append(
-        {"role": "user", "content": f"[supplier · {module.name} · ticket {ticket.id}] {body.message}"}
-    )
     ticket.status = TicketStatus.AWAITING_USER
-    await session.commit()
+    message = {"role": "user", "content": f"[supplier · {module.name} · ticket {ticket.id}] {body.message}"}
+    await runs.submit(session, user, [message])
     await session.refresh(ticket)
     return TicketOut.model_validate(ticket)

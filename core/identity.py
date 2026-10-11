@@ -12,14 +12,19 @@ NAMESPACE = uuid.UUID("aae45951-5e3b-4bcd-b5c8-d81e3261328f")
 
 
 def user_id_for(app: App, account_id: str) -> uuid.UUID:
+    return uuid.uuid5(NAMESPACE, f"{app}:{normalize_account(app, account_id)}")
+
+
+def normalize_account(app: App, account_id: str) -> str:
+    """The account id in one canonical form: what the user id is derived from and replies go to."""
     match app:
         case "wa":
-            account_id = normalize_phone(account_id)
+            return normalize_phone(account_id)
         case "tg":
-            account_id = str(int(account_id))
+            return str(int(account_id))
         case "web":
-            account_id = str(uuid.UUID(account_id))
-    return uuid.uuid5(NAMESPACE, f"{app}:{account_id}")
+            return str(uuid.UUID(account_id))
+    return account_id
 
 
 def normalize_phone(raw: str) -> str:

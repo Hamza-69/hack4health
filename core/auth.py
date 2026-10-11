@@ -1,4 +1,4 @@
-"""FastAPI dependencies: database session, logged-in admin, calling module."""
+"""FastAPI dependencies: database session, logged-in admin, calling module, calling client."""
 
 import uuid
 from collections.abc import AsyncIterator
@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.db import Session
 from core.models import Admin
-from core.registry import ModuleConfig, load_modules
+from core.registry import ClientConfig, ModuleConfig, load_clients, load_modules
 from core.tokens import verify_core_token
 
 bearer = HTTPBearer()
@@ -50,5 +50,14 @@ async def current_module(credentials: Credentials) -> ModuleConfig:
     return module
 
 
+async def current_client(credentials: Credentials) -> ClientConfig:
+    claims = _claims(credentials, TokenType.CLIENT)
+    client = load_clients().get(claims["sub"])
+    if client is None:
+        raise HTTPException(401, f"client {claims['sub']!r} is not in the registry")
+    return client
+
+
 CurrentAdmin = Annotated[Admin, Depends(current_admin)]
 CurrentModule = Annotated[ModuleConfig, Depends(current_module)]
+CurrentClient = Annotated[ClientConfig, Depends(current_client)]

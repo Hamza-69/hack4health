@@ -4,19 +4,21 @@ A modular AI agent that users reach through WhatsApp, Telegram or the web. Each 
 
 ## Quick start
 
-Needs `uv`, Node and Docker.
+Needs `uv`, Node and Docker. The agent needs `OPENAI_API_KEY=...` in a `.env` at the repo root.
 
 ```bash
 docker compose up -d                 # Postgres on localhost:5432
 uv sync
 npm install
 uv run alembic upgrade head          # core tables
-uv run h4h init                      # signing keys + a token for each local module
+uv run h4h init                      # signing keys + a token for each local module and client
 uv run h4h admin create you@example.com   # prompts for a password
-uv run h4h dev                       # core, admin panel and every module
+uv run h4h dev                       # core, admin panel, every module and the web chat
 ```
 
-Open http://localhost:5173 and log in. Then make the agent's call yourself to see a ticket flow through:
+Talk to the agent at http://localhost:9000, the web chat client. Each browser is its own user; **New chat** starts over as a new one. The admin panel is at http://localhost:5173.
+
+To watch a ticket flow through without the model, make the agent's tool call yourself:
 
 ```bash
 uv run h4h tools call noop__open_request --user wa:+96170123456 --args '{"title": "Insulin refill", "details": "2 pens by Tuesday"}'
@@ -71,6 +73,7 @@ UI (`from "@h4h/module-ui"`):
 uv run h4h --help
 uv run h4h module list               # the registry (modules.toml)
 uv run h4h tools list                # every module's tools, as the agent sees them
+uv run h4h client token web          # fresh token for a chat client registered in clients.toml
 uv run pytest                        # DB tests skip without Postgres
 uv run alembic revision --autogenerate -m "message"   # after changing core/models.py
 ```

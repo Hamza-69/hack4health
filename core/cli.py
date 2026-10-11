@@ -1,4 +1,4 @@
-"""`uv run h4h ...`: setup, admins, modules, tool calls, and running everything in dev."""
+"""`uv run h4h ...`: setup, admins, modules, clients, tool calls, and running everything in dev."""
 
 import argparse
 import asyncio
@@ -17,9 +17,10 @@ from urllib.parse import urlsplit
 from sqlalchemy import select
 
 from core import tokens
-from core.registry import config_path, load_modules
+from core.registry import clients_config_path, config_path, load_clients, load_modules
 
 MODULES_DIR = Path("modules")
+CLIENTS_DIR = Path("clients")
 TEMPLATE = "noop"
 NAME_RE = re.compile(r"^[a-z][a-z0-9_]{1,30}$")
 CORE_PORT = 8000
@@ -53,6 +54,9 @@ def main() -> None:
     call.add_argument("--user", required=True, help="wa:<phone>, tg:<id>, web:<uuid>, or a user uuid")
     call.add_argument("--args", default="{}", help="tool arguments as JSON")
 
+    client = commands.add_parser("client", help="chat clients").add_subparsers(dest="sub", required=True)
+    client.add_parser("token", help="write a fresh CLIENT_TOKEN to clients/<app>/.env, or print it for a client hosted elsewhere").add_argument("app", choices=["wa", "tg", "web"])
+
     commands.add_parser("dev", help="run the core, the admin panel and every local module")
 
     args = parser.parse_args()
@@ -72,6 +76,8 @@ def main() -> None:
             asyncio.run(list_tools())
         case "tools", "call":
             asyncio.run(call_tool(args.name, args.user, json.loads(args.args)))
+        case "client", "token":
+            write_client_token(args.app)
         case "dev", _:
             dev()
 
@@ -84,6 +90,9 @@ def init() -> None:
     for name in load_modules():
         if (MODULES_DIR / name).is_dir() and not (MODULES_DIR / name / ".env").exists():
             write_module_token(name)
+    for app in load_clients():
+        if (CLIENTS_DIR / app).is_dir() and not (CLIENTS_DIR / app / ".env").exists():
+            write_client_token(app)
 
 
 async def create_admin(email: str, role: str, modules: list[str], password: str | None) -> None:
@@ -147,13 +156,25 @@ def new_module(name: str, title: str | None) -> None:
 def write_module_token(name: str) -> None:
     if name not in load_modules():
         sys.exit(f"module {name!r} is not in {config_path()}")
-    env = MODULES_DIR / name / ".env"
+    _write_env(MODULES_DIR / name / ".env", "MODULE_TOKEN", tokens.module_token(name))
+
+
+def write_client_token(app: str) -> None:
+    if app not in load_clients():
+        sys.exit(f"client {app!r} is not in {clients_config_path()}")
+    if not (CLIENTS_DIR / app).is_dir():
+        print(tokens.client_token(app))  # hosted elsewhere: hand it over yourself
+        return
+    _write_env(CLIENTS_DIR / app / ".env", "CLIENT_TOKEN", tokens.client_token(app))
+
+
+def _write_env(env: Path, key: str, value: str) -> None:
     lines = env.read_text().splitlines() if env.exists() else []
-    lines = [line for line in lines if not line.startswith("MODULE_TOKEN=")]
-    lines.append(f"MODULE_TOKEN={tokens.module_token(name)}")
+    lines = [line for line in lines if not line.startswith(f"{key}=")]
+    lines.append(f"{key}={value}")
     env.write_text("\n".join(lines) + "\n")
     env.chmod(0o600)
-    print(f"Wrote MODULE_TOKEN to {env}")
+    print(f"Wrote {key} to {env}")
 
 
 async def list_tools() -> None:
@@ -179,7 +200,7 @@ async def call_tool(name: str, user: str, arguments: dict) -> None:
 
 
 def dev() -> None:
-    """Run the core, the admin shell, and each local module's backend and UI, with merged output."""
+    """Run the core, the admin shell, each local module's backend and UI, and each local chat client, with merged output."""
     core_url = f"http://localhost:{CORE_PORT}"
     shell_origin = f"http://localhost:{SHELL_PORT}"
     processes = [
@@ -193,6 +214,12 @@ def dev() -> None:
         processes.append((m.name, ["uv", "run", "--directory", str(folder), "uvicorn", "app.main:app", "--reload", "--port", str(url.port)], {"CORE_URL": core_url}))
         if (folder / "ui").is_dir() and ui.port != url.port:
             processes.append((f"{m.name}-ui", ["npm", "run", "dev", "-w", f"{folder}/ui", "--", "--port", str(ui.port), "--strictPort"], {"MODULE_URL": m.url, "VITE_SHELL_ORIGIN": shell_origin}))
+    for c in load_clients().values():
+        folder, url = CLIENTS_DIR / c.app, urlsplit(c.url)
+        if not folder.is_dir() or url.hostname not in ("localhost", "127.0.0.1"):
+            continue  # hosted elsewhere
+        # Open event streams would otherwise hold up every reload.
+        processes.append((f"{c.app}-client", ["uv", "run", "--directory", str(folder), "uvicorn", "app.main:app", "--reload", "--timeout-graceful-shutdown", "1", "--port", str(url.port)], {"CORE_URL": core_url}))
     try:
         asyncio.run(_run_all(processes))
     except (KeyboardInterrupt, asyncio.CancelledError):
