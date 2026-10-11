@@ -28,7 +28,7 @@ from core.registry import load_clients
 STALE_AFTER = timedelta(minutes=5)  # a run that hasn't stepped for this long counts as crashed
 SWEEP_EVERY = 60  # seconds between looks for stale runs
 MAX_RUNS = int(os.environ.get("AGENT_MAX_RUNS", "50"))
-FALLBACK = "Sorry, something went wrong on our side. Please try again in a moment."
+FALLBACK = "Sorry, something went wrong on our side. Please try again in a moment.\nعذراً، صار في مشكلة عنّا. جرّب كمان شوي."
 
 log = logging.getLogger(__name__)
 

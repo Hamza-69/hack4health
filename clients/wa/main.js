@@ -31,7 +31,7 @@ const AUTH_DIR = 'auth'
 const AUDIENCE = 'client:wa'
 const ISSUER = 'h4h-core'
 const TYPING_FOR = 120_000 // stop showing "typing…" if no reply comes within this long
-const SORRY = 'Sorry, something went wrong on our side. Please try again in a moment.'
+const SORRY = 'Sorry, something went wrong on our side. Please try again in a moment.\nعذراً، صار في مشكلة عنّا. جرّب كمان شوي.'
 
 const logger = pino({ level: process.env.BAILEYS_LOG_LEVEL ?? 'error' })
 const jwks = createRemoteJWKSet(new URL(`${CORE_URL}/.well-known/jwks.json`))

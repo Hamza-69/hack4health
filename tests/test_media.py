@@ -60,13 +60,27 @@ async def test_only_registered_clients_can_upload(client):
     assert (await upload(client, JPEG, "image/jpeg", token=tokens.client_token("tg"))).status_code == 401
 
 
-def test_arabizi_hint_ignores_links_and_media_descriptions():
+def script(*messages):
+    return agent._script(agent._user_words(list(messages)))
+
+
+def test_language_ignores_links_and_media_descriptions():
     photo = HumanMessage("[photo http://localhost:8000/media/k6kAb3dE9fGh2jKl4mNp7q.jpg] a prescription")
-    assert agent._script_hint([HumanMessage("Which hospitals are in Zahle?"), photo]) is None
+    assert script(HumanMessage("Which hospitals are in Zahle?"), photo) == "latin"
+    arabic_doc = HumanMessage("[photo http://x/a.jpg] civil registry extract (إخراج قيد فردي)")
+    assert script(HumanMessage("Yes please, do it for us"), arabic_doc) == "latin"
 
 
-def test_arabizi_hint_follows_the_user_through_voice_notes_and_supplier_updates():
+def test_language_follows_the_user_through_voice_notes_and_supplier_updates():
     supplier = HumanMessage("[supplier · requests · ticket 1] Approved")
-    assert agent._script_hint([HumanMessage("kifak, baddi 3melye"), AIMessage("..."), supplier])
-    assert agent._script_hint([HumanMessage("[voice note] shou lezem jib ma3e?")])
-    assert agent._script_hint([HumanMessage("[voice note] شو لازم جيب معي؟")]) is None
+    assert script(HumanMessage("kifak, baddi 3melye"), AIMessage("..."), supplier) == "arabizi"
+    assert script(HumanMessage("[voice note] shou lezem jib ma3e?")) == "arabizi"
+    assert script(HumanMessage("[voice note] شو لازم جيب معي؟")) == "arabic"
+
+
+def test_wrong_script_ignores_links_and_bracketed_names():
+    english = "Send a photo of the civil registry extract (إخراج قيد فردي): https://www.moph.gov.lb/ar/x"
+    assert not agent._wrong_script("latin", english)
+    assert agent._wrong_script("latin", "أكيد. فيني حضّر الطلب، بس بحتاج منك تبعتلي صور هالمستندات")
+    assert agent._wrong_script("arabic", "Sure, send me the medical report and the NSSF statement")
+    assert agent._wrong_script("arabizi", "Eh, lezem ikhraj qaid (إخراج قيد)")

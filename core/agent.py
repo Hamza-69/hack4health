@@ -172,11 +172,13 @@ async def call_model(state: State, runtime: Runtime[Context]) -> dict:
     queued = await ctx.sync(state["messages"])
     model = get_model().bind_tools(ctx.tools)
     messages = [SystemMessage(ctx.system), *state["messages"], *queued]
-    if hint := _script_hint(messages):
-        messages.append(SystemMessage(hint))
+    user = _user_words(messages)
+    if script := _script(user):
+        messages.append(SystemMessage(_HINTS[script]))
     reply = await model.ainvoke(messages)
-    if hint and not reply.tool_calls and _ARABIC.search(reply.text):
-        reply = await _rewrite_in_arabizi(reply)
+    if script and not reply.tool_calls and _wrong_script(script, reply.text):
+        log.warning("reply for user %s came out of the user's script (%s); rewriting", ctx.user_id, script)
+        reply = await _rewrite(reply, script, user)
     if reply.text:
         await ctx.send(reply.text)
     return {"messages": [*queued, reply]}
@@ -195,31 +197,65 @@ _ARABIZI = re.compile(
 )
 
 
+_LATIN = re.compile(r"[A-Za-z\u00c0-\u024f]")
+_URL = re.compile(r"https?://\S+")
 _TAGGED = ("[supplier", "[photo", "[document", "[location", "[file", "[video", "[contact")
 
+# Tool results are mostly Arabic and photo descriptions English, and both pull the model away from
+# the user's language. A last-moment reminder, then a rewrite if the reply still came out wrong.
+_HINTS = {
+    "arabizi": "The user writes in Arabizi (Lebanese Arabic in Latin letters). Write your whole reply in Arabizi "
+    "with Latin letters and numbers only: not one word in Arabic script, including document names, "
+    "offices and quotes from tool results; transliterate them. Links stay as they are.",
+    "arabic": "The user writes in Arabic script. Write your whole reply in Arabic script, in their dialect "
+    "(Lebanese if they write Lebanese), even when tool results or photo descriptions are in English. "
+    "Links and numbers stay as they are.",
+    "latin": "The user writes in a language with Latin letters (English or French, not Arabizi). Write your "
+    "whole reply in that language, even though tool results are in Arabic. An Arabic document or office "
+    "name may follow its translation in brackets. Links stay as they are.",
+}
+_REWRITES = {
+    "arabizi": "Rewrite the message fully in Lebanese Arabizi (Latin letters and numbers, e.g. 3, 7, 2). "
+    "Transliterate every word in Arabic script.",
+    "arabic": "Rewrite the message fully in Arabic script, in the dialect of this message from the user: {user}",
+    "latin": "Rewrite the message fully in the language of this message from the user: {user}\n"
+    "Arabic document or office names may stay only in brackets after their translation.",
+}
 
-def _script_hint(messages: list[AnyMessage]) -> str | None:
-    """A last-moment reminder of the user's script: tool results in Arabic pull the model away from Arabizi.
 
-    Judged on the last thing the user wrote or said, not on supplier updates, links or media descriptions.
-    """
-    texts = (m.text.lower().removeprefix("[voice note]").strip() for m in reversed(messages) if isinstance(m, HumanMessage))
-    text = next((t for t in texts if t and not t.startswith(_TAGGED) and "could not be read]" not in t), "")
-    if not text or _ARABIC.search(text) or not _ARABIZI.search(text):
-        return None
-    return (
-        "The user writes in Arabizi (Lebanese Arabic in Latin letters). Write your whole reply in Arabizi "
-        "with Latin letters and numbers only: not one word in Arabic script, including document names, "
-        "offices and quotes from tool results; transliterate them. Links stay as they are."
-    )
+def _user_words(messages: list[AnyMessage]) -> str:
+    """The last thing the user wrote or said: not supplier updates, links or media descriptions."""
+    texts = (m.text.removeprefix("[voice note]").strip() for m in reversed(messages) if isinstance(m, HumanMessage))
+    return next((t for t in texts if t and not t.startswith(_TAGGED) and "could not be read]" not in t), "")
 
 
-async def _rewrite_in_arabizi(reply: AIMessage) -> AIMessage:
-    """The model still slipped into Arabic script: have it rewrite the answer, keeping everything else."""
+def _script(text: str) -> str | None:
+    """arabic, arabizi or latin: how the user writes."""
+    if _ARABIC.search(text):
+        return "arabic"
+    if _ARABIZI.search(text.lower()):
+        return "arabizi"
+    return "latin" if _LATIN.search(text) else None
+
+
+def _wrong_script(script: str, reply: str) -> bool:
+    text = _URL.sub("", reply)
+    arabic, latin = len(_ARABIC.findall(text)), len(_LATIN.findall(text))
+    match script:
+        case "arabizi":
+            return arabic > 0
+        case "arabic":
+            return latin > arabic
+        case _:
+            return arabic > latin
+
+
+async def _rewrite(reply: AIMessage, script: str, user: str) -> AIMessage:
+    """The model still slipped out of the user's script: have it rewrite the answer, keeping everything else."""
+    instruction = _REWRITES[script].format(user=json.dumps(user[:300], ensure_ascii=False))
     rewrite = await get_model().ainvoke([
-        SystemMessage("Rewrite the message fully in Lebanese Arabizi (Latin letters and numbers, e.g. 3, 7, 2). "
-                      "Transliterate every word in Arabic script. Keep the meaning, numbers, links and list layout "
-                      "exactly. Output only the rewritten message."),
+        SystemMessage(f"{instruction}\nKeep the meaning, numbers, links and list layout exactly. "
+                      "Output only the rewritten message."),
         HumanMessage(reply.text),
     ])
     return AIMessage(rewrite.text, id=reply.id)

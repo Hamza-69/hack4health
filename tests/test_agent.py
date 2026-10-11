@@ -5,7 +5,7 @@ import httpx
 import pytest
 from h4h.tokens import TokenType, verify
 from httpx import ASGITransport, AsyncClient
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, SystemMessage
 from mcp_types import CallToolResult, TextContent
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
@@ -111,7 +111,8 @@ async def test_run_calls_tools_pours_the_queue_and_finishes(client, session, sta
     [(_, since)] = started_runs
     await runs.Run(user_id, since).go()
 
-    assert model.prompts[1][-1].content == "2 pens please"  # poured in after the tool result
+    chat = [m for m in model.prompts[1] if not isinstance(m, SystemMessage)]
+    assert chat[-1].content == "2 pens please"  # poured in after the tool result
     user = await fresh(session, user_id)
     assert [(m["role"], m["content"]) for m in user.messages] == [
         ("user", "do you have insulin?"),
