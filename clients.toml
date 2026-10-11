@@ -4,3 +4,6 @@
 
 [web]
 url = "http://localhost:9000"  # clients/web: a test chat page at this address
+
+[wa]
+url = "http://localhost:9001"  # clients/wa: links a WhatsApp number by QR code at this address

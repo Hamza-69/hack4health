@@ -1,8 +1,9 @@
 """Web chat client: a page to talk to the agent, and the client side of the agent API.
 
 The browser posts each message here. After DEBOUNCE_SECONDS without a new one, the batch goes to
-the core's POST /agent/messages with this client's token. The core POSTs the agent's replies to
-/messages with a reply token, and they reach the browser as server-sent events.
+the core's POST /agent/messages with this client's token. Voice notes, photos and PDFs first go to
+the core's POST /agent/media, which turns each into a text message for the batch. The core POSTs the
+agent's replies to /messages with a reply token, and they reach the browser as server-sent events.
 
 Users are browsers: each keeps a random uuid as its web account id. State is in memory; replies
 for a browser that is not connected wait here until it reconnects.
@@ -19,7 +20,7 @@ from typing import Annotated
 import httpx
 import jwt
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.sse import EventSourceResponse
@@ -38,6 +39,7 @@ jwks = jwt.PyJWKClient(f"{CORE_URL}/.well-known/jwks.json")
 
 pending: dict[str, list[str]] = defaultdict(list)  # messages waiting out the debounce
 timers: dict[str, asyncio.Task] = {}
+reading: dict[str, int] = defaultdict(int)  # media uploads the core is still reading, per account
 streams: dict[str, set[asyncio.Queue]] = defaultdict(set)  # open event streams per account
 held: dict[str, list[dict]] = defaultdict(list)  # replies for accounts with no open stream
 
@@ -50,6 +52,10 @@ class SendIn(BaseModel):
 class ReplyIn(BaseModel):
     account_id: str
     text: str
+
+
+class MediaOut(BaseModel):
+    message: str  # what the agent gets: "[voice note] ...", "[photo <link>] ..." or "[document <link>] ..."
 
 
 def _account(raw: str) -> str:
@@ -77,6 +83,38 @@ async def send(body: SendIn) -> None:
     """One message from the browser. It waits out the debounce with any that follow it."""
     account_id = _account(body.account_id)
     pending[account_id].append(body.text)
+    _arm(account_id)
+
+
+@app.post("/api/media")
+async def send_media(account_id: Annotated[str, Form()], file: UploadFile) -> MediaOut:
+    """A voice note, photo or PDF from the browser. The core turns it into a message, which joins the debounce."""
+    account_id = _account(account_id)
+    if not CLIENT_TOKEN:
+        raise HTTPException(503, "CLIENT_TOKEN is missing: run `uv run h4h init`.")
+    reading[account_id] += 1
+    try:
+        async with httpx.AsyncClient(timeout=90) as http:
+            response = await http.post(
+                f"{CORE_URL}/agent/media",
+                headers={"Authorization": f"Bearer {CLIENT_TOKEN}"},
+                files={"file": (file.filename or "upload", await file.read(), file.content_type)},
+            )
+        response.raise_for_status()
+        message = response.json()["message"]
+        pending[account_id].append(message)
+        return MediaOut(message=message)
+    except httpx.HTTPStatusError as e:
+        status = e.response.status_code
+        raise HTTPException(status if status < 500 else 502, e.response.json().get("detail", e.response.text)) from e
+    except httpx.HTTPError as e:
+        raise HTTPException(502, f"Could not reach the core at {CORE_URL}: {e!r}") from e
+    finally:
+        reading[account_id] -= 1
+        _arm(account_id)
+
+
+def _arm(account_id: str) -> None:
     if timer := timers.get(account_id):
         timer.cancel()
     timers[account_id] = asyncio.create_task(_flush_later(account_id))
@@ -84,9 +122,13 @@ async def send(body: SendIn) -> None:
 
 async def _flush_later(account_id: str) -> None:
     await asyncio.sleep(DEBOUNCE)
-    # Taken before the first await, so a newer message starts a new batch instead of cancelling this one.
-    texts = pending.pop(account_id)
     del timers[account_id]
+    if reading[account_id]:
+        return  # a voice note or photo is still being read; it re-arms the timer when done
+    # Taken before the first await, so a newer message starts a new batch instead of cancelling this one.
+    texts = pending.pop(account_id, [])
+    if not texts:
+        return
     if not CLIENT_TOKEN:
         _push(account_id, {"type": "error", "text": "CLIENT_TOKEN is missing: run `uv run h4h init`."})
         return

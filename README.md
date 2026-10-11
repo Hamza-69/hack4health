@@ -16,7 +16,9 @@ uv run h4h admin create you@example.com   # prompts for a password
 uv run h4h dev                       # core, admin panel, every module and the web chat
 ```
 
-Talk to the agent at http://localhost:9000, the web chat client. Each browser is its own user; **New chat** starts over as a new one. The admin panel is at http://localhost:5173.
+Talk to the agent at http://localhost:9000, the web chat client. Each browser is its own user; **New chat** starts over as a new one. It takes voice notes (the mic button) and photos or PDFs (the paperclip). The admin panel is at http://localhost:5173.
+
+For WhatsApp, open http://localhost:9001 and scan the QR code from WhatsApp › Settings › Linked devices on the phone with the bot's number (a spare one: it answers every private chat). Then message that number from any other phone. See [AGENTS.md](AGENTS.md#whatsapp).
 
 To watch a ticket flow through without the model, make the agent's tool call yourself:
 
@@ -73,7 +75,7 @@ UI (`from "@h4h/module-ui"`):
 uv run h4h --help
 uv run h4h module list               # the registry (modules.toml)
 uv run h4h tools list                # every module's tools, as the agent sees them
-uv run h4h client token web          # fresh token for a chat client registered in clients.toml
+uv run h4h client token wa           # fresh token for a chat client registered in clients.toml (wa, web)
 uv run pytest                        # DB tests skip without Postgres
 uv run alembic revision --autogenerate -m "message"   # after changing core/models.py
 ```

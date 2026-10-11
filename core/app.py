@@ -1,9 +1,10 @@
 import asyncio
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 
-from core import admin_api, agent_api, module_api, runs, tokens
+from core import admin_api, agent_api, media, module_api, runs, tokens
 
 
 @asynccontextmanager
@@ -24,3 +25,11 @@ app.include_router(agent_api.router)
 def jwks() -> dict:
     """Public key modules use to verify user and admin tokens."""
     return tokens.jwks()
+
+
+@app.get("/media/{name}", include_in_schema=False)
+def media_file(name: str) -> FileResponse:
+    """A photo or PDF a user sent. The random name is the only key."""
+    if (path := media.path(name)) is None:
+        raise HTTPException(404, "no such file")
+    return FileResponse(path, headers={"Cache-Control": "private, max-age=86400", "X-Content-Type-Options": "nosniff"})

@@ -50,10 +50,6 @@ script. Example: "Eh, fik ta3mol talab esteshfa2 3a 7sab el wezara. Lezem: 1. Ta
 - Modern Standard Arabic → Modern Standard Arabic. English → English. French → French.
 The ministry's content is in Arabic: translate or transliterate it into the user's script.
 
-Messages starting with "[photo <url>]" are photos the user sent, described for you; "[voice note]" \
-messages are what the user said, transcribed. The language of a reply follows the user's own words \
-(typed or spoken), never the language of a photo description.
-
 Style: short and plain, the way a helpful person texts on WhatsApp. No markdown: no **, #, headings \
 or tables; a short numbered list for steps or documents is fine. Links as bare URLs.
 
@@ -66,6 +62,18 @@ can help with.
 Messages that start with "[supplier · <module> · ticket <id>]" come from the supplier handling \
 that ticket, not from the user. Tell the user what changed in your own words. Once the user has \
 responded to that update, call resolve_ticket.
+
+What the user's app adds in square brackets. The language of a reply follows the user's own words \
+(typed or spoken), never the language of a description:
+- "[voice note] <transcript>": the user spoke this. Treat it as typed, and reply in the language \
+and script they would write it in.
+- "[photo <link>] <description>" or "[document <link>] <description>": the user sent a photo or \
+PDF. The description is automatic and can be wrong; if it matters, ask. Never diagnose or judge \
+anything medical from a photo. When a tool takes a document, pass its link.
+- "[location: <place or coordinates>]": the user shared a location. If it is only coordinates, ask \
+which town or area they are in.
+- "[... can't be opened]" or "[... could not be read]": say what you can read (text, voice notes, \
+photos, PDFs) and ask them to send it that way.
 """
 
 RESOLVE_TICKET = {
@@ -187,11 +195,17 @@ _ARABIZI = re.compile(
 )
 
 
+_TAGGED = ("[supplier", "[photo", "[document", "[location", "[file", "[video", "[contact")
+
+
 def _script_hint(messages: list[AnyMessage]) -> str | None:
-    """A last-moment reminder of the user's script: tool results in Arabic pull the model away from Arabizi."""
-    last = next((m for m in reversed(messages) if isinstance(m, HumanMessage) and not m.text.startswith("[photo")), None)
-    text = last.text.lower() if last else ""
-    if not text or text.startswith("[supplier") or _ARABIC.search(text) or not _ARABIZI.search(text):
+    """A last-moment reminder of the user's script: tool results in Arabic pull the model away from Arabizi.
+
+    Judged on the last thing the user wrote or said, not on supplier updates, links or media descriptions.
+    """
+    texts = (m.text.lower().removeprefix("[voice note]").strip() for m in reversed(messages) if isinstance(m, HumanMessage))
+    text = next((t for t in texts if t and not t.startswith(_TAGGED) and "could not be read]" not in t), "")
+    if not text or _ARABIC.search(text) or not _ARABIZI.search(text):
         return None
     return (
         "The user writes in Arabizi (Lebanese Arabic in Latin letters). Write your whole reply in Arabizi "

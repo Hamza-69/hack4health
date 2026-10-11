@@ -1,9 +1,9 @@
 [project]
 name = "web-client"
 version = "0.1.0"
-description = "Web chat client for the hack4health agent"
+description = "Web chat client for Wasel, the hack4health agent"
 requires-python = ">=3.13"
-dependencies = ["h4h"]
+dependencies = ["h4h", "python-multipart>=0.0.20"]
 
 [tool.uv.sources]
 h4h = { path = "../../sdk/python", editable = true }
