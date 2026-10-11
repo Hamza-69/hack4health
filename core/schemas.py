@@ -77,6 +77,9 @@ class NotifyIn(BaseModel):
 class MessagesIn(BaseModel):
     account_id: str  # on the client's app: phone number, Telegram chat id or web uuid
     messages: list[str] = Field(min_length=1)  # debounced by the client, oldest first
+    # What the client showed as Wasel's first message before the user wrote (the web widget's hello).
+    # Kept as the agent's opening line for a brand-new user, so the agent knows it has already greeted them.
+    greeting: str | None = Field(None, max_length=1000)
 
 
 class MessagesOut(BaseModel):
