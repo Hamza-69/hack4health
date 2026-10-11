@@ -6,6 +6,8 @@
      data-lang="ar|en"          the chat's language (default: the page's <html lang>)
      data-position="left|right" the corner (default: right, or left on right-to-left pages)
      data-open="true"           start with the chat open
+     data-ns="ministry"         keep this page's conversation apart from the others in the browser
+                                (the demo pages use it; a real site leaves it out)
 
    From the page's own scripts:
      Wasel.open(), Wasel.close(), Wasel.toggle()
