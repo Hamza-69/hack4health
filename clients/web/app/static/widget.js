@@ -9,10 +9,13 @@
      data-ns="ministry"         keep this page's conversation apart from the others in the browser
                                 (the demo pages use it; a real site leaves it out)
 
+   From the page, with no script of its own: any element with data-wasel-ask opens the chat on that
+   question, e.g. on a service page
+     <button data-wasel-ask="How do I apply for IVIG?">Ask Wasel about this service</button>
+
    From the page's own scripts:
      Wasel.open(), Wasel.close(), Wasel.toggle()
-     Wasel.ask("How do I apply for IVIG?")  opens the chat and sends the question, e.g. from a
-                                            "Ask Wasel about this service" button on a service page
+     Wasel.ask("How do I apply for IVIG?")  opens the chat and sends the question
 
    Everything renders in a shadow root, so the site's styles and the widget's never touch. The chat
    itself (an iframe of /chat) loads on the first open, so the widget costs the page almost nothing. */
@@ -159,6 +162,12 @@
     if (!e.target.closest("button")) open();
   });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && isOpen) close(); });
+  document.addEventListener("click", (e) => {
+    const trigger = e.target instanceof Element && e.target.closest("[data-wasel-ask]");
+    if (!trigger) return;
+    e.preventDefault();
+    ask(trigger.getAttribute("data-wasel-ask"));
+  });
 
   window.addEventListener("message", (e) => {
     if (!frame || e.source !== frame.contentWindow || e.origin !== chatUrl.origin || !e.data) return;

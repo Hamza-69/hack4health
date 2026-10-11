@@ -70,7 +70,7 @@
   .actions { display: flex; flex-wrap: wrap; gap: 8px; }
   .actions button { font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; border-radius: 8px; padding: 9px 14px; white-space: nowrap;
                     border: 1px solid var(--color-wasel); background: var(--color-wasel); color: var(--color-wasel-ink); }
-  .actions button + button { background: transparent; color: var(--color-wasel); }
+  .actions button:nth-of-type(2n) { background: transparent; color: var(--color-wasel); }
   .actions button:active { transform: translateY(1px); }
 
   aside section { background: var(--color-surface); border: 1px solid var(--color-rule); border-radius: 10px; padding: 18px; margin-bottom: 16px; }
@@ -146,8 +146,11 @@
         <p class="ar">واصل بيجمع الأوراق معك كصور، بيقلّك شو ناقص، بيعبّي الطلب وبيبعته للمكتب المختص، وبيخبرك هون أو على واتساب أول ما يتحرّك.</p>
         <p class="en">Wasel collects the papers with you as photos, tells you what's missing, fills in the request and sends it to the right desk, then tells you here or on WhatsApp as soon as it moves.</p>
         <div class="actions">
-          <button type="button" data-ask="start"><span class="ar">ابدأ الطلب مع واصل</span><span class="en">Start the request with Wasel</span></button>
-          <button type="button" data-ask="who"><span class="ar">مين بيحقّلو؟</span><span class="en">Who qualifies?</span></button>
+          <!-- No script needed: the widget opens on the question in data-wasel-ask. -->
+          <button type="button" class="ar" data-wasel-ask="بدي قدّم طلب استشفاء على نفقة وزارة الصحة">ابدأ الطلب مع واصل</button>
+          <button type="button" class="ar" data-wasel-ask="مين بيحقّلو طلب الاستشفاء على نفقة الوزارة؟">مين بيحقّلو؟</button>
+          <button type="button" class="en" data-wasel-ask="I want to apply for hospitalisation at the ministry's expense">Start the request with Wasel</button>
+          <button type="button" class="en" data-wasel-ask="Who qualifies for hospitalisation at the ministry's expense?">Who qualifies?</button>
         </div>
       </div>
     </div>
@@ -184,14 +187,5 @@
 
 <!-- The whole integration: this one tag. -->
 <script src="widget.js" data-ns="ministry" defer></script>
-<script>
-  const QUESTIONS = {
-    ar: { start: "بدي قدّم طلب استشفاء على نفقة وزارة الصحة", who: "مين بيحقّلو طلب الاستشفاء على نفقة الوزارة؟" },
-    en: { start: "I want to apply for hospitalisation at the ministry's expense", who: "Who qualifies for hospitalisation at the ministry's expense?" },
-  };
-  document.querySelectorAll("[data-ask]").forEach((button) => {
-    button.addEventListener("click", () => window.Wasel?.ask(QUESTIONS[lang][button.dataset.ask]));
-  });
-</script>
 </body>
 </html>
