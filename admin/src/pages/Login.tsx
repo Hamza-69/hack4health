@@ -29,7 +29,13 @@ export default function Login() {
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <form onSubmit={submit} className="w-full max-w-sm space-y-4 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-        <h1 className="text-lg font-semibold">Wasel · Ministry console</h1>
+        <div className="flex items-center gap-3">
+          <img src="/favicon.svg" alt="" className="h-10 w-10 rounded-[11px]" />
+          <div>
+            <h1 className="text-lg font-semibold">Wasel · Ministry console</h1>
+            <p className="text-xs text-gray-500">وزارة الصحة العامة · Ministry of Public Health</p>
+          </div>
+        </div>
         <label className="block text-sm">
           Email
           <input
@@ -54,7 +60,7 @@ export default function Login() {
         {error && <p className="text-sm text-red-600">{error}</p>}
         <button
           disabled={busy}
-          className="w-full rounded-md bg-gray-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+          className="w-full rounded-md bg-[#0d5c48] px-3 py-2 text-sm font-medium text-white hover:bg-[#0b4f3e] disabled:opacity-50"
         >
           {busy ? "Logging in…" : "Log in"}
         </button>
