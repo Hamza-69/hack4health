@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Demo: Wasel on a ministry page</title>
+<link rel="icon" href="static/logo.svg" type="image/svg+xml">
+<script>
+  // ?lang=en|ar, from the landing page's language switch. Set before the widget reads <html lang>.
+  const lang = new URLSearchParams(location.search).get("lang") === "en" ? "en" : "ar";
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+</script>
+<style>
+  /* A stand-in for a page on the ministry's site, in a neutral government style, so the landing page can
+     show the real widget sitting on it. The widget below is loaded exactly as the ministry would load it. */
+  :root {
+    --color-page: oklch(97.6% 0.004 250);
+    --color-surface: oklch(99.5% 0.002 250);
+    --color-ink: oklch(25% 0.02 250);
+    --color-muted: oklch(48% 0.018 250);
+    --color-rule: oklch(89% 0.008 250);
+    --color-brand: oklch(33% 0.06 245);
+    --color-brand-ink: oklch(97% 0.006 250);
+    --color-link: oklch(45% 0.12 250);
+    --color-banner: oklch(93% 0.06 85);
+    --color-banner-ink: oklch(32% 0.06 70);
+    --color-wasel: oklch(43% 0.085 168);
+    --color-wasel-soft: oklch(95% 0.03 165);
+    --color-wasel-ink: oklch(97% 0.012 90);
+    --font-body: system-ui, -apple-system, "Segoe UI", "Noto Sans Arabic", "Geeza Pro", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; overflow-x: clip; }
+  body { background: var(--color-page); color: var(--color-ink); font: 15px/1.6 var(--font-body); }
+  [lang="ar"] .en, [lang="en"] .ar { display: none !important; }
+  a { color: var(--color-link); }
+  :focus-visible { outline: 2px solid var(--color-link); outline-offset: 2px; }
+
+  .banner { background: var(--color-banner); color: var(--color-banner-ink); font-size: 13px; padding: 8px 16px; text-align: center; }
+  .banner a { color: inherit; font-weight: 600; }
+  .top { background: var(--color-brand); color: var(--color-brand-ink); }
+  .top .in, main, footer .in { max-width: 1040px; margin: 0 auto; padding-inline: 20px; }
+  .top .in { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 14px; flex-wrap: wrap; }
+  .name strong { display: block; font-size: 18px; letter-spacing: 0.01em; }
+  .name span { font-size: 12.5px; opacity: 0.8; }
+  .hot { font-size: 13px; opacity: 0.92; white-space: nowrap; }
+  .hot b { font-variant-numeric: tabular-nums; }
+  nav { background: var(--color-surface); border-bottom: 1px solid var(--color-rule); }
+  nav .in { max-width: 1040px; margin: 0 auto; padding: 0 20px; display: flex; gap: 22px; overflow-x: auto; scrollbar-width: none; }
+  nav span { padding: 12px 0; font-size: 14px; color: var(--color-muted); white-space: nowrap; border-bottom: 2px solid transparent; }
+  nav span.on { color: var(--color-ink); border-bottom-color: var(--color-brand); font-weight: 600; }
+
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 28px; padding-block: 24px 64px; }
+  .crumbs { font-size: 13px; color: var(--color-muted); margin: 0 0 6px; }
+  h1 { font-size: clamp(22px, 3.4vw, 30px); line-height: 1.3; margin: 0 0 14px; overflow-wrap: anywhere; }
+  h2 { font-size: 17px; margin: 26px 0 8px; }
+  article { background: var(--color-surface); border: 1px solid var(--color-rule); border-radius: 10px; padding: 24px; min-width: 0; }
+  article p { margin: 0 0 10px; }
+  ol { margin: 0; padding-inline-start: 22px; }
+  li { margin-bottom: 6px; }
+  .opt { color: var(--color-muted); }
+  .source { font-size: 13px; color: var(--color-muted); margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--color-rule); overflow-wrap: anywhere; }
+
+  .wasel { margin: 22px 0 4px; padding: 18px; border-radius: 10px; background: var(--color-wasel-soft); display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 14px; align-items: start; }
+  .wasel img { width: 44px; height: 44px; border-radius: 12px; }
+  .wasel h3 { margin: 0 0 4px; font-size: 16px; }
+  .wasel p { margin: 0 0 12px; font-size: 14px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .actions button { font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; border-radius: 8px; padding: 9px 14px; white-space: nowrap;
+                    border: 1px solid var(--color-wasel); background: var(--color-wasel); color: var(--color-wasel-ink); }
+  .actions button:nth-of-type(2n) { background: transparent; color: var(--color-wasel); }
+  .actions button:active { transform: translateY(1px); }
+
+  aside section { background: var(--color-surface); border: 1px solid var(--color-rule); border-radius: 10px; padding: 18px; margin-bottom: 16px; }
+  aside h2 { margin: 0 0 10px; font-size: 15px; }
+  aside ul { list-style: none; margin: 0; padding: 0; }
+  aside li { padding: 8px 0; border-top: 1px solid var(--color-rule); font-size: 14px; line-height: 1.45; }
+  aside li:first-child { border-top: 0; padding-top: 0; }
+  aside time { display: block; font-size: 12px; color: var(--color-muted); font-variant-numeric: tabular-nums; }
+  aside a { text-decoration: none; color: var(--color-ink); }
+  aside a:hover { color: var(--color-link); text-decoration: underline; }
+  footer { border-top: 1px solid var(--color-rule); color: var(--color-muted); font-size: 13px; }
+  footer .in { padding-block: 18px 96px; }
+  @media (max-width: 820px) { main { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 480px) { article { padding: 18px; } .wasel { grid-template-columns: minmax(0, 1fr); } }
+</style>
+</head>
+<body>
+<p class="banner">
+  <span class="ar">صفحة تجريبية: هكذا يظهر واصل على موقع الوزارة. هذا ليس الموقع الرسمي، وهو على <a href="https://www.moph.gov.lb" target="_blank" rel="noopener">moph.gov.lb</a>.</span>
+  <span class="en">Demo page: how Wasel would sit on the ministry's website. This is not the official site, which is at <a href="https://www.moph.gov.lb" target="_blank" rel="noopener">moph.gov.lb</a>.</span>
+</p>
+<header class="top">
+  <div class="in">
+    <div class="name">
+      <strong class="ar">وزارة الصحة العامة</strong><strong class="en">Ministry of Public Health</strong>
+      <span class="ar">الخدمات الإدارية</span><span class="en">Administrative services</span>
+    </div>
+    <div class="hot">
+      <span class="ar">الخط الساخن <b>1214</b> · للنازحين <b>1787</b></span>
+      <span class="en">Hotline <b>1214</b> · Displaced <b>1787</b></span>
+    </div>
+  </div>
+</header>
+<nav aria-label="Demo navigation">
+  <div class="in">
+    <span class="ar">الرئيسية</span><span class="en">Home</span>
+    <span class="ar on">الخدمات</span><span class="en on">Services</span>
+    <span class="ar">المؤسسات الصحية</span><span class="en">Health facilities</span>
+    <span class="ar">الأدوية</span><span class="en">Medicines</span>
+    <span class="ar">الأخبار</span><span class="en">News</span>
+  </div>
+</nav>
+
+<main>
+  <article>
+    <p class="crumbs"><span class="ar">الخدمات › مديرية العناية الطبية</span><span class="en">Services › Directorate of Medical Care</span></p>
+    <h1><span class="ar">طلب إستشفاء على نفقة وزارة الصحة</span><span class="en">Hospitalisation at the ministry's expense</span></h1>
+    <p class="ar">موافقة لتدفع الوزارة كلفة عملية أو دخول إلى المستشفى، للمرضى الذين لا يستفيدون من أي جهة ضامنة أخرى: لا الضمان الاجتماعي، ولا تعاونية موظفي الدولة، ولا الجيش أو قوى الأمن، ولا شركة تأمين.</p>
+    <p class="en">Approval for the ministry to pay for an operation or hospital stay, for patients with no other health cover: not the NSSF, the civil servants' cooperative, the army, internal security or an insurance company.</p>
+
+    <h2><span class="ar">المستندات المطلوبة</span><span class="en">Documents</span></h2>
+    <ol class="ar">
+      <li>تقرير طبي مفصل مع تاريخ الدخول وختم المستشفى وختم وتوقيع الطبيب ورقم انتسابه، مع عبارة "على نفقة وزارة الصحة"</li>
+      <li>إخراج قيد فردي، وعليه صورة صاحب العلاقة إذا كان عمره أكثر من خمس سنوات</li>
+      <li>إفادة من الضمان الاجتماعي بعدم استفادة المريض من التغطية الصحية، لا يتجاوز عمرها الشهرين</li>
+      <li class="opt">مستند يثبت صلة القرابة، إذا قدم الطلب أحد أفراد العائلة</li>
+    </ol>
+    <ol class="en">
+      <li>Detailed medical report: admission date, hospital stamp, doctor's stamp, signature and Order number, with the words "at the expense of the Ministry of Health"</li>
+      <li>Individual civil registry extract (ikhraj qaid fardi), with the patient's photo if over 5</li>
+      <li>NSSF statement that the patient is not covered by the NSSF, no older than two months</li>
+      <li class="opt">Proof of kinship, if a relative applies for the patient</li>
+    </ol>
+
+    <h2><span class="ar">أين يقدَّم الطلب</span><span class="en">Where to apply</span></h2>
+    <p class="ar">مركز إعطاء البطاقات، بئر حسن، الجناح، قرب أوجيرو، من الاثنين إلى السبت. الموافقة صالحة 15 يوماً، ويجددها الطبيب المراقب في المستشفى.</p>
+    <p class="en">The card issuing centre in Bir Hassan, Jnah, near Ogero, Monday to Saturday. The approval is valid 15 days; the ministry's controller doctor at the hospital renews it.</p>
+
+    <div class="wasel">
+      <img src="static/logo.svg" alt="">
+      <div>
+        <h3><span class="ar">قدّم الطلب مع واصل</span><span class="en">Apply with Wasel</span></h3>
+        <p class="ar">واصل بيجمع الأوراق معك كصور، بيقلّك شو ناقص، بيعبّي الطلب وبيبعته للمكتب المختص، وبيخبرك هون أو على واتساب أول ما يتحرّك.</p>
+        <p class="en">Wasel collects the papers with you as photos, tells you what's missing, fills in the request and sends it to the right desk, then tells you here or on WhatsApp as soon as it moves.</p>
+        <div class="actions">
+          <!-- No script needed: the widget opens on the question in data-wasel-ask. -->
+          <button type="button" class="ar" data-wasel-ask="بدي قدّم طلب استشفاء على نفقة وزارة الصحة">ابدأ الطلب مع واصل</button>
+          <button type="button" class="ar" data-wasel-ask="مين بيحقّلو طلب الاستشفاء على نفقة الوزارة؟">مين بيحقّلو؟</button>
+          <button type="button" class="en" data-wasel-ask="I want to apply for hospitalisation at the ministry's expense">Start the request with Wasel</button>
+          <button type="button" class="en" data-wasel-ask="Who qualifies for hospitalisation at the ministry's expense?">Who qualifies?</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="source"><span class="ar">المصدر:</span><span class="en">Source:</span>
+      <a href="https://www.moph.gov.lb/ar/AdministrativeServices/details/84" target="_blank" rel="noopener" dir="ltr">moph.gov.lb/ar/AdministrativeServices/details/84</a></p>
+  </article>
+
+  <aside>
+    <section>
+      <h2><span class="ar">آخر الأخبار</span><span class="en">Latest news</span></h2>
+      <ul class="ar">
+        <li><time datetime="2026-10-08">8 تشرين الأول 2026</time><a href="https://www.moph.gov.lb/ar/Media/view/87271/%D9%88%D8%B2%D9%8A%D8%B1-%D8%A7%D9%84%D8%B5%D8%AD%D8%A9-%D8%A3%D8%B7%D9%84%D9%82-%D8%A7%D9%84%D8%AD%D9%85%D9%84%D8%A9-%D8%A7%D9%84%D9%88%D8%B7%D9%86%D9%8A%D8%A9-%D9%84%D9%84%D8%AA%D9%88%D8%B9%D9%8A%D8%A9-%D9%88%D8%A7%D9%84%D9%83%D8%B4%D9%81-%D8%A7%D9%84%D9%85%D8%A8%D9%83%D8%B1-%D8%B9%D9%84%D9%89-%D8%B3%D8%B1%D8%B7%D8%A7%D9%86-%D8%A7%D9%84%D8%AB%D8%AF%D9%8A-%D9%88%D8%A3%D8%B9%D9%84%D9%86-%D8%A7%D9%84%D8%AA%D8%A3%D8%B3%D9%8A%D8%B3-%D9%84%D9%86%D9%85%D9%88%D8%B0%D8%AC-%D8%AC%D8%AF%D9%8A%D8%AF" target="_blank" rel="noopener">وزير الصحة أطلق الحملة الوطنية للتوعية والكشف المبكر على سرطان الثدي</a></li>
+        <li><time datetime="2026-09-30">30 أيلول 2026</time><a href="https://www.moph.gov.lb/ar/Media/view/87204/%D9%88%D8%B2%D9%8A%D8%B1-%D8%A7%D9%84%D8%B5%D8%AD%D8%A9-%D8%A7%D8%B9%D9%84%D9%86-%D8%A5%D8%B9%D8%A7%D8%AF%D8%A9-%D8%AA%D9%81%D8%B9%D9%8A%D9%84-%D8%B9%D9%85%D9%84%D9%8A%D8%A7%D8%AA-%D8%B2%D8%B1%D8%B9-%D8%A7%D9%84%D8%A3%D8%B9%D8%B6%D8%A7%D8%A1-%D8%B9%D9%84%D9%89-%D9%86%D9%81%D9%82%D8%A9-%D8%A7%D9%84%D9%88%D8%B2%D8%A7%D8%B1%D8%A9" target="_blank" rel="noopener">وزير الصحة اعلن إعادة تفعيل عمليات زرع الأعضاء على نفقة الوزارة</a></li>
+        <li><time datetime="2026-09-21">21 أيلول 2026</time><a href="https://www.moph.gov.lb/ar/Media/view/87045/%D9%86%D8%A7%D8%B5%D8%B1-%D8%A7%D9%84%D8%AF%D9%8A%D9%86-%D8%A3%D8%B7%D9%84%D9%82-%D8%A7%D9%84%D8%AD%D9%85%D9%84%D8%A9-%D8%A7%D9%84%D9%88%D8%B7%D9%86%D9%8A%D8%A9-%D9%84%D9%84%D8%AA%D9%84%D9%82%D9%8A%D8%AD-%D8%B6%D8%AF-%D8%A7%D9%84%D8%A5%D9%86%D9%81%D9%84%D9%88%D9%86%D8%B2%D8%A7-%D8%A7%D9%84%D9%85%D9%88%D8%B3%D9%85%D9%8A%D8%A9" target="_blank" rel="noopener">ناصر الدين أطلق الحملة الوطنية للتلقيح ضد الإنفلونزا الموسمية</a></li>
+      </ul>
+      <ul class="en">
+        <li><time datetime="2026-10-08">8 October 2026</time><a href="https://www.moph.gov.lb/en/Media/view/87271/nassereddine-launches-national-breast-cancer-awareness-and-early-detection-campaign" target="_blank" rel="noopener">Nassereddine Launches National Breast Cancer Awareness and Early Detection Campaign</a></li>
+        <li><time datetime="2026-09-30">30 September 2026</time><a href="https://www.moph.gov.lb/en/Media/view/87204/nassereddine-announces-the-reactivation-of-organ-transplant-operations-at-the-expense-of-the-ministr" target="_blank" rel="noopener">Nassereddine Announces the Reactivation of Organ Transplant Operations at the Expense of the Ministry</a></li>
+        <li><time datetime="2026-09-21">21 September 2026</time><a href="https://www.moph.gov.lb/en/Media/view/87045/nassereddine-launches-the-national-seasonal-influenza-vaccination-campaign" target="_blank" rel="noopener">Nassereddine Launches the National Seasonal Influenza Vaccination Campaign</a></li>
+      </ul>
+    </section>
+    <section>
+      <h2><span class="ar">مساعدة</span><span class="en">Help</span></h2>
+      <p class="ar" style="margin:0;font-size:14px">اسأل واصل من الزر بأسفل الصفحة، بالعربي أو الإنكليزي، كتابةً أو برسالة صوتية.</p>
+      <p class="en" style="margin:0;font-size:14px">Ask Wasel from the button at the bottom of the page, in Arabic or English, typed or by voice note.</p>
+    </section>
+  </aside>
+</main>
+<footer><div class="in">
+  <span class="ar">صفحة تجريبية لمشروع واصل، Hack for Health Lebanon 2026.</span>
+  <span class="en">Demo page for the Wasel project, Hack for Health Lebanon 2026.</span>
+</div></footer>
+
+<!-- The whole integration: this one tag. -->
+<script src="widget.js" data-ns="ministry" defer></script>
+</body>
+</html>

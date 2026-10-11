@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Wasel">
+  <title>Wasel · واصل</title>
+  <!-- The Arabic letter waw (و), the first letter of واصل, drawn as a speech bubble. -->
+  <rect width="512" height="512" rx="116" fill="#0d5c48"/>
+  <path fill="#f4ecdc" fill-rule="evenodd" d="M300 92C362 92 410 142 410 210C410 322 318 410 116 428C96 430 92 410 110 404C214 372 262 340 280 318C226 310 190 266 190 208C190 144 238 92 300 92ZM292 150C315 150 332 168 332 192C332 216 315 234 292 234C269 234 252 216 252 192C252 168 269 150 292 150Z"/>
+</svg>

@@ -5,11 +5,13 @@ import re
 
 import openai
 from fastapi import APIRouter, HTTPException, UploadFile
+from sqlalchemy import exists, select
 
 from core import media, runs
 from core.auth import DB, CurrentClient
 from core.chat import lock_user
 from core.identity import normalize_account, user_id_for
+from core.models import Archive
 from core.schemas import MediaOut, MessagesIn, MessagesOut
 
 log = logging.getLogger(__name__)
@@ -33,10 +35,18 @@ async def post_messages(body: MessagesIn, client: CurrentClient, session: DB) ->
         raise HTTPException(422, str(e)) from e
     user = await lock_user(session, user_id_for(client.app, address))
     user.app, user.address = client.app, address
-    queued = await runs.submit(
-        session, user, [{"role": "user", "content": _from_user(text)} for text in body.messages], prune=True
-    )
+    messages = [{"role": "user", "content": _from_user(text)} for text in body.messages]
+    if body.greeting and await _is_new(session, user):
+        messages.insert(0, {"role": "assistant", "content": body.greeting})
+    queued = await runs.submit(session, user, messages, prune=True)
     return MessagesOut(user_id=user.id, queued=queued)
+
+
+async def _is_new(session: DB, user) -> bool:
+    """No chat, nothing queued and nothing archived: the client's greeting was the first thing they saw."""
+    if user.messages or user.queue:
+        return False
+    return not await session.scalar(select(exists().where(Archive.user_id == user.id)))
 
 
 @router.post("/media")

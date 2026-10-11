@@ -16,6 +16,7 @@ sed "s|PUBLIC_URL|$PUBLIC_URL|g" deploy/modules.toml > "$MODULES_CONFIG"
 .venv/bin/uvicorn core.app:app --port 8000 &
 (cd modules/moph && exec .venv/bin/uvicorn app.main:app --port 8002) &
 (cd modules/requests && exec .venv/bin/uvicorn app.main:app --port 8003) &
+(cd modules/bills && exec .venv/bin/uvicorn app.main:app --port 8004) &
 (cd clients/web && exec .venv/bin/uvicorn app.main:app --timeout-graceful-shutdown 1 --port 9000) &
 (cd clients/wa && PORT=9001 exec node main.js) &
 caddy run --config deploy/Caddyfile --adapter caddyfile &

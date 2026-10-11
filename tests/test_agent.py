@@ -14,7 +14,7 @@ from core import agent, db, runs, tokens, tools
 from core.app import app
 from core.auth import get_session
 from core.chat import lock_user
-from core.models import Ticket, TicketStatus, User
+from core.models import Archive, Ticket, TicketStatus, User
 
 PHONE = "+96170123456"
 
@@ -195,6 +195,45 @@ async def test_resolve_ticket_only_closes_the_users_awaiting_tickets(client, ses
     assert await agent.resolve_ticket(user_id, str(awaiting.id), "Picked up") == "resolved"
     await session.refresh(awaiting)
     assert (awaiting.status, awaiting.resolution) == (TicketStatus.RESOLVED, "Picked up")
+
+
+async def test_only_a_new_user_gets_the_welcome(client, session, monkeypatch):
+    async def modules():
+        return [tools.ModuleTools("moph", None, []), tools.ModuleTools("requests", None, [])]
+
+    async def system(user_id):
+        return (await agent.context(user_id, sync=None, send=None)).system
+
+    monkeypatch.setattr(tools, "list_modules", modules)
+    user_id = await post_user(client, "hi")
+    welcome = await system(user_id)
+    assert "first time" in welcome and "submit some requests" in welcome and "hospital bill" not in welcome
+
+    user = await lock_user(session, user_id)
+    user.messages = [*user.messages, {"role": "assistant", "content": "", "tool_calls": []}]
+    await session.commit()
+    assert "first time" in await system(user_id)  # a tool call alone is no reply
+
+    user = await lock_user(session, user_id)
+    user.messages = [*user.messages, {"role": "assistant", "content": "Hi, I'm Wasel"}]
+    await session.commit()
+    assert "first time" not in await system(user_id)
+
+    returning = await post_user(client, "hi again", account="+96171000000")
+    session.add(Archive(user_id=returning, messages=[]))
+    await session.commit()
+    assert "first time" not in await system(returning)
+
+
+async def test_a_client_greeting_opens_a_new_users_chat_only(client, session):
+    headers = {"Authorization": f"Bearer {tokens.client_token('wa')}"}
+    body = {"account_id": PHONE, "messages": ["hi"], "greeting": "Hi, I'm Wasel"}
+    user_id = uuid.UUID((await client.post("/agent/messages", headers=headers, json=body)).json()["user_id"])
+    await client.post("/agent/messages", headers=headers, json=body | {"messages": ["still there?"]})
+
+    user = await fresh(session, user_id)
+    assert [(m["role"], m["content"]) for m in user.messages] == [("assistant", "Hi, I'm Wasel"), ("user", "hi")]
+    assert user.queue == [{"role": "user", "content": "still there?"}]  # a run is active: no second greeting
 
 
 async def test_replies_go_to_the_client_with_a_reply_token(monkeypatch):

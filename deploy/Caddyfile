@@ -17,6 +17,12 @@
 	handle_path /modules/requests/* {
 		reverse_proxy localhost:8003
 	}
+	handle_path /modules/bills/* {
+		reverse_proxy localhost:8004
+	}
+	# The public site (landing page, chat, widget.js) lives under /chat/; opening the bare domain lands on it.
+	# The admin panel keeps every other path (/login, /tickets, /m/...), which it reaches by client-side routing.
+	redir / /chat/
 	redir /chat /chat/
 	handle_path /chat/* {
 		reverse_proxy localhost:9000

@@ -10,3 +10,4 @@ keys
 media
 clients/wa/auth
 sandpit
+!sandpit/data/structured/facilities_clean.csv
