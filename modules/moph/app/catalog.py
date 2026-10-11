@@ -58,6 +58,7 @@ HOTLINES = [
     {"contact": "01/832700: hotline for patient admission to hospitals",
      "source_url": "https://www.moph.gov.lb/ar/complaints"},
     {"contact": "1564: mental health support line", "source_url": "https://www.moph.gov.lb/ar/Media/view/82829"},
+    {"contact": "140: Lebanese Red Cross, medical emergencies and ambulance", "source_url": "https://www.redcross.org.lb"},
 ]
 
 # Common spellings (English, French, Arabizi, cities) of the Facility Locator's areas.
