@@ -44,8 +44,9 @@ Judging criteria and what each one means for this repo:
 | Humira | Go in person to the ministry's 4th floor |
 | IVIG | Hand in form AK010IVIG-4 at the ministry, or apply online with a site account |
 | Complaints | Call 1214 (also the app, website or email) |
+| A hospital charging a covered patient | Phone 1787 from the billing desk; the call leaves no record of hospital, amount or bill |
 
-Facts to keep straight, because the Minister is judging: the ministry's data never names hernia, so Wasel answers about the hospitalisation request in general and never claims a specific operation is covered. 1787 is for questions about hospital cover and for displaced people, not complaints. The hospitalisation request needs a civil registry extract (إخراج قيد فردي), not the ID card.
+Facts to keep straight, because the Minister is judging: the ministry's data never names hernia, so Wasel answers about the hospitalisation request in general and never claims a specific operation is covered. 1787 is for questions about hospital cover and for displaced people, and (circular of 14 Mar 2026) for patients charged differences at a hospital that must cover them in full; other complaints go to 1214. The hospitalisation request needs a civil registry extract (إخراج قيد فردي), not the ID card.
 
 A Q&A bot fixes half of this: the information gets easy to find, but every request still goes through one person. Wasel gives the patient one door and the ministry one inbox. Positioning against the other team: they built the ministry's encyclopedia; we built its معقّب.
 
@@ -86,6 +87,7 @@ Out of scope: medicine-arrival alerts, and actions for NSSF or private insurance
 | Follows up | core tickets, `notify`, `resolve_ticket`, `requests__request_status` | Built. Deadline escalation not built (overdue requests are flagged in the inbox) |
 | Ministry inbox | admin panel → Ministry Inbox | Built: live queue, filled form, documents, Approve / Ask for more / Decline that reach the user in seconds |
 | What people are asking | moph admin page: Unanswered, Searches | First version built |
+| Hospital bills | `modules/bills/` | Built: checks a bill against the ministry's dated rules and the 14 Mar 2026 list of 77 hospitals bound to 100% cover, reports a covered patient charged anyway (R-numbers), desk page with per-hospital evidence. See its README |
 | Clients | `clients/` | WhatsApp (`clients/wa/`, a number linked by QR code) and the web chat (`clients/web/`). Both take text, voice notes, photos and PDFs |
 
 ## Architecture
@@ -294,6 +296,7 @@ modules/noop/        # example module and the template for `h4h module new`
   ui/                # its admin page
 modules/moph/        # Ministry Info: the "Knows" layer (see its README)
 modules/requests/    # Ministry Inbox: the "Does" layer: catalog.json, request tools, inbox page
+modules/bills/       # Hospital Bills: check a bill against the ministry's rules (cover.json), report charges, per-hospital view
 clients/web/         # web chat client: the page, debounce, reply callback (app/main.py, app/static/index.html)
 clients/wa/          # WhatsApp client (Node, Baileys): linking, debounce, media, replies (main.js)
 migrations/          # Alembic, core tables only
