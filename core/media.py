@@ -45,11 +45,13 @@ there rather than guess. Don't judge whether it is genuine, official, stamped or
 watermarks such as "specimen" or "sample": the ministry desk checks that.
 - A document: name its type in English from what is printed on it, not from who it is being sent to \
 (e.g. "Lebanese ID card", "civil registry extract", "family civil registry extract", "medical report", \
-"NSSF statement", "prescription", "invoice"), with the Arabic title as printed. In `details`, add the \
+"NSSF statement", "prescription", "hospital bill"), with the Arabic title as printed. In `details`, add the \
 printed facts a ministry desk would need, at most 10, in English: e.g. father's and mother's names, \
 date and place of birth, registry number for civil records; diagnosis, procedure, hospital, doctor and \
 admission date for medical reports; who is or isn't covered for insurance statements; each medicine \
-with its strength for prescriptions. Dates as YYYY-MM-DD.
+with its strength for prescriptions; hospital, admission date, total, what the ministry or another \
+payer covers and what the patient is asked to pay, with currency, for hospital bills. Dates as YYYY-MM-DD. \
+Give names of hospitals and other institutions exactly as printed, in their own script: never translate them.
 - A medicine pack: its name, strength and form in `details`.
 - Anything else: what it shows, plainly. Never judge anything medical in a photo of a person."""
 
@@ -65,7 +67,7 @@ class Reading(BaseModel):
     kind: str = Field(description="What it is, in English, e.g. 'civil registry extract' or 'photo of a medicine box'")
     title_ar: str | None = Field(description="The Arabic title as printed, if any")
     name: str | None = Field(description="Whose document it is, as printed")
-    issuer: str | None = Field(description="Who issued it: ministry, hospital, doctor, NSSF...")
+    issuer: str | None = Field(description="Who issued it, its name as printed: ministry, hospital, doctor, NSSF...")
     issued: str | None = Field(description="Issue date, YYYY-MM-DD; not a date of birth")
     expires: str | None = Field(description="Expiry date, YYYY-MM-DD")
     details: list[Detail]
