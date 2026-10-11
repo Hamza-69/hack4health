@@ -1,0 +1,23 @@
+# One machine runs everything (deploy/start.sh). Keep it at one: the WhatsApp session can live in
+# one place only, and it sits on the volume.
+app = "wasel"
+primary_region = "iad"  # next to OpenAI and the Pinecone index (us-east-1), which every turn calls
+
+[build.args]
+  VITE_SHELL_ORIGIN = "https://wasel.fly.dev"
+
+[[mounts]]
+  source = "wasel_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "off"  # WhatsApp holds a live connection
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[vm]]
+  memory = "2gb"
+  cpu_kind = "shared"
+  cpus = 1

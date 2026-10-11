@@ -115,8 +115,8 @@ async def find_facilities(
 ) -> dict:
     """Find licensed health facilities from the ministry's Facility Locator by type, area and/or
     name: hospitals, primary health care centres, pharmacies, radiology labs, physiotherapy centres,
-    dental labs, nurseries. Gives phone, caza and the official page. There are no street addresses,
-    and no stock: for whether a pharmacy has a medicine, give nearby pharmacies to call."""
+    dental labs, nurseries. Gives the address (in Arabic), phone, caza and the official page. There is
+    no stock: for whether a pharmacy has a medicine, give pharmacies in the area to call."""
     if not (type or area or name):
         raise ToolError("give at least one of type, area or name")
     catalog = await _catalog(ctx)

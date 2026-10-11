@@ -15,7 +15,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cache
-from typing import Annotated, TypedDict
+from typing import Annotated, Literal, TypedDict
 from zoneinfo import ZoneInfo
 
 from langchain.chat_models import init_chat_model
@@ -25,6 +25,8 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 from langgraph.runtime import Runtime
 from mcp_types import CallToolResult, Tool
+from openai import AsyncOpenAI
+from pydantic import BaseModel
 from sqlalchemy import func, select
 
 from core import db, tools
@@ -32,6 +34,8 @@ from core.models import Ticket, TicketStatus
 
 MODEL = os.environ.get("AGENT_MODEL", "openai:gpt-6.1-sol")  # any init_chat_model "provider:model"
 MODEL_TIMEOUT = 120  # seconds per model call
+SCRIPT_MODEL = os.environ.get("SCRIPT_MODEL", "gpt-6-luna")  # tells Arabizi from English or French
+SCRIPT_TIMEOUT = 10  # seconds; past it the turn goes on without a language hint
 TOOL_TIMEOUT = 60  # seconds per tool call
 MAX_STEPS = 25  # model and tool steps in one turn
 RESOLUTION_NOTES = 5  # resolutions of archived tickets given as background
@@ -180,8 +184,9 @@ async def call_model(state: State, runtime: Runtime[Context]) -> dict:
     queued = await ctx.sync(state["messages"])
     model = get_model().bind_tools(ctx.tools)
     messages = [SystemMessage(ctx.system), *state["messages"], *queued]
-    user = _user_words(messages)
-    if script := _script(user):
+    texts = _user_texts(messages)
+    user = texts[0] if texts else ""
+    if script := await _script(texts):
         messages.append(SystemMessage(_HINTS[script]))
     reply = await model.ainvoke(messages)
     if script and not reply.tool_calls and _wrong_script(script, reply.text):
@@ -199,11 +204,6 @@ async def call_tools(state: State, runtime: Runtime[Context]) -> dict:
 
 _ARABIC = re.compile(r"[\u0600-\u06ff]")
 _ARABIC_WORDS = re.compile(r"[\u0600-\u06ff]+(?:\s+[\u0600-\u06ff]+)*")
-_ARABIZI = re.compile(
-    r"[a-z][2356789][a-z]|\b[2357][a-z]|[a-z][2357]\b|"
-    r"\b(shou|shu|kif|kifak|kifik|baddi|badde|bade|bado|eza|iza|3am|ma3|3and|3ande|ya3ne|adde|"
-    r"hek|hayde|hayda|ana|enta|enti|lesh|leh|wen|mnih|tayeb|yalla|marhaba|habibi|ktir|kteer)\b"
-)
 
 
 _LATIN = re.compile(r"[A-Za-z\u00c0-\u024f]")
@@ -233,19 +233,63 @@ _REWRITES = {
 }
 
 
-def _user_words(messages: list[AnyMessage]) -> str:
-    """The last thing the user wrote or said: not supplier updates, links or media descriptions."""
+SCRIPT_PROMPT = """\
+Messages a user in Lebanon sent, oldest first. Is the LAST one written in Arabizi (Lebanese Arabic in Latin \
+letters, often with numbers for Arabic sounds and English or French words mixed in, e.g. "kifak", \
+"baddi 3melye", "eh hydi sah bs il saydaliyeh il tenyi 8lt") or in English or French ("latin")? \
+A short reply any Lebanese might type, like "ok", "merci", "yes" or "thanks", has no language of its own: \
+answer with the language of the earlier messages."""
+
+
+class _Script(BaseModel):
+    script: Literal["arabizi", "latin"]
+
+
+_scripts: dict[tuple[str, ...], str] = {}  # classified messages, so the steps of a turn ask once
+
+
+def _user_texts(messages: list[AnyMessage]) -> list[str]:
+    """What the user wrote or said, newest first: not supplier updates, links or media descriptions."""
     texts = (m.text.removeprefix("[voice note]").strip() for m in reversed(messages) if isinstance(m, HumanMessage))
-    return next((t for t in texts if t and not t.startswith(_TAGGED) and "could not be read]" not in t), "")
+    return [t for t in texts if t and not t.startswith(_TAGGED) and "could not be read]" not in t]
 
 
-def _script(text: str) -> str | None:
-    """arabic, arabizi or latin: how the user writes."""
-    if _ARABIC.search(text):
+async def _script(texts: list[str]) -> str | None:
+    """arabic, arabizi or latin: how the user writes, from their last message (texts newest first)."""
+    if not texts:
+        return None
+    if _ARABIC.search(texts[0]):
         return "arabic"
-    if _ARABIZI.search(text.lower()):
-        return "arabizi"
-    return "latin" if _LATIN.search(text) else None
+    if not _LATIN.search(texts[0]):
+        return None
+    key = tuple(texts[:3])
+    if key not in _scripts:
+        try:
+            script = await _classify(key)
+        except Exception as e:
+            log.warning("could not tell the user's script: %r", e)
+            return None
+        if len(_scripts) > 10_000:
+            _scripts.clear()
+        _scripts[key] = script
+    return _scripts[key]
+
+
+@cache
+def _openai() -> AsyncOpenAI:
+    return AsyncOpenAI(timeout=SCRIPT_TIMEOUT, max_retries=1)
+
+
+async def _classify(texts: tuple[str, ...]) -> str:
+    """Arabizi or English/French, by gpt-6-luna: letters alone can't tell "bs il tenyi 8lt" from English."""
+    response = await _openai().responses.parse(
+        model=SCRIPT_MODEL,
+        instructions=SCRIPT_PROMPT,
+        input="\n".join(json.dumps(t[:300], ensure_ascii=False) for t in reversed(texts)),
+        text_format=_Script,
+        reasoning={"effort": "none"},
+    )
+    return response.output_parsed.script
 
 
 def _wrong_script(script: str, reply: str) -> bool:

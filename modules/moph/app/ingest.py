@@ -46,6 +46,12 @@ def _csv(path: Path) -> list[dict]:
         return list(csv.DictReader(f))
 
 
+def _given(value: str | None) -> str:
+    """A field from a facility page, or "" for the site's placeholders (NA, no, -)."""
+    value = (value or "").strip()
+    return "" if value.lower() in {"", "na", "n/a", "no", "none", "-", "0"} else value
+
+
 def _float(value: str) -> float | None:
     try:
         return float(value)
@@ -152,6 +158,9 @@ def load_files(root: Path | None = None) -> dict[str, list[dict]]:
         for i, m in enumerate(_csv(structured / "free_meds_unified.csv"), 1)
     ]
 
+    # Addresses come from each facility's own page (the crawler's facility_details step).
+    details_csv = structured / "facilities_details.csv"
+    details = {d["facility_id"]: d for d in _csv(details_csv)} if details_csv.exists() else {}
     facilities = [
         {
             "id": int(f["facility_id"]),
@@ -164,6 +173,7 @@ def load_files(root: Path | None = None) -> dict[str, list[dict]]:
             "caza_ar": f["caza_ar"],
             "phone": f["phone"],
             "url": f["url"],
+            "address": _given(details.get(f["facility_id"], {}).get("en:Address")),
         }
         for f in _csv(structured / "facilities_clean.csv")
     ]
@@ -262,6 +272,7 @@ async def ingest(root: Path | None = None, by: str = "cli") -> dict:
     """Replace the crawled tables with the files' content, then sync the search index to them.
     Returns row counts and, per index namespace, the vectors added, removed and in total."""
     search_index.require()
+    await ensure_schema()
     rows = await asyncio.to_thread(load_files, root)
     tables = {"services": Service, "pages": Page, "documents": Document, "drugs": Drug, "free_meds": FreeMed,
               "facilities": Facility}
@@ -291,6 +302,9 @@ async def ensure_schema() -> None:
     async with module.engine.begin() as conn:
         await conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{module.name}"'))
         await conn.run_sync(module.Base.metadata.create_all)
+        # create_all adds no columns to a table that exists
+        await conn.execute(text(f'ALTER TABLE "{module.name}".facilities ADD COLUMN IF NOT EXISTS address text '
+                                "NOT NULL DEFAULT ''"))
 
 
 async def _main() -> None:

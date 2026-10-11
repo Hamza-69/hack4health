@@ -90,12 +90,13 @@ export function useAdmin(): Admin {
   return useShell().admin;
 }
 
-/** `fetch` for this module's backend: prefixes /api, sends the admin token, returns parsed JSON. */
+/** `fetch` for this module's backend: prefixes /api, sends the admin token, returns parsed JSON.
+ * The API sits next to the UI's base (/ui/ → /api, /modules/moph/ui/ → /modules/moph/api behind a proxy). */
 export function useApi() {
   const { token, refresh } = useShell();
   return useCallback(
     async <T,>(path: string, init: RequestInit = {}): Promise<T> => {
-      const response = await fetch(`/api${path}`, {
+      const response = await fetch(`${import.meta.env.BASE_URL}../api${path}`, {
         ...init,
         headers: { "Content-Type": "application/json", ...init.headers, Authorization: `Bearer ${token}` },
       });

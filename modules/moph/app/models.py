@@ -106,6 +106,7 @@ class Facility(module.Base):
     caza_ar: Mapped[str] = mapped_column(Text)
     phone: Mapped[str] = mapped_column(Text)
     url: Mapped[str] = mapped_column(Text)
+    address: Mapped[str] = mapped_column(Text, default="")  # in Arabic, from the facility's own page
 
 
 class Gap(module.Base):

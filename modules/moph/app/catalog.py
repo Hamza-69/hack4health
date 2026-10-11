@@ -81,9 +81,8 @@ _AREA_ALIASES = {
 }
 AREA_ALIASES = {normalize(alias): area for area, aliases in _AREA_ALIASES.items() for alias in aliases}
 
-# Neighbourhoods and towns people name, by the caza the Facility Locator files them under. The
-# locator has no street addresses, so a neighbourhood narrows to its caza, and facilities named
-# after the neighbourhood come first.
+# Neighbourhoods and towns people name, by the caza the Facility Locator files them under. A
+# neighbourhood narrows to its caza, then to the facilities whose address names it.
 _NEIGHBOURHOODS = {
     "Beirut": [
         ("hamra", "الحمرا", "حمرا"), ("achrafieh", "ashrafieh", "الاشرفيه"), ("ras beirut", "راس بيروت"),
@@ -344,11 +343,13 @@ class Catalog:
         if name:
             q = normalize(name)
             rows = [f for f in rows if q in normalize(f["name_en"]) or q in normalize(f["name_ar"])]
-        def named_after(f) -> bool:
-            name = normalize(f["name_en"] + " " + f["name_ar"])
-            return any(v in name for v in spellings)
+        def in_neighbourhood(f) -> bool:
+            """Its official address names the neighbourhood (its name, when the page gave no address)."""
+            place = normalize(f["address"] or f["name_en"] + " " + f["name_ar"])
+            return any(v in place for v in spellings)
 
-        rows = sorted(rows, key=lambda f: (not named_after(f), f["type"] != "Governmental Hospitals", f["name_ar"]))
+        near = [f for f in rows if in_neighbourhood(f)] if neighbourhood else []
+        rows = sorted(near or rows, key=lambda f: (f["type"] != "Governmental Hospitals", f["name_ar"]))
         result = {
             "total": len(rows),
             "facilities": [
@@ -358,17 +359,23 @@ class Catalog:
                     "type": f["type"],
                     "governorate": f["governorate"],
                     "caza": f["caza_en"],
+                    "address": f["address"],
                     "phone": f["phone"],
                     "url": f["url"],
                 }.items() if v}
                 for f in rows[:limit]
             ],
         }
-        if neighbourhood and rows:
+        if near:
             result["note"] = (
-                f"The Facility Locator has no street addresses: these are licensed facilities anywhere in {area}, "
-                f"not necessarily near {neighbourhood}. Any named after {neighbourhood} come first. Never call the "
-                f"others nearby or in {neighbourhood}; say they are in {area} and suggest calling to check where they are."
+                f"These are the ones whose official address names {neighbourhood}. Give each one's street and "
+                f"building from its address, without owner names or plot numbers. "
+                f"Don't add facilities from elsewhere in {area} unless the user asks for more."
+            )
+        elif neighbourhood and rows:
+            result["note"] = (
+                f"No official address names {neighbourhood}: these are licensed facilities anywhere in {area}. "
+                f"Say so, give their addresses, and never call them nearby or in {neighbourhood}."
             )
         if not rows:
             result["note"] = (
@@ -399,8 +406,11 @@ async def get_catalog() -> Catalog:
 
 
 async def _load() -> Catalog:
+    from app.ingest import ensure_schema
     from app.models import Drug, Facility, FreeMed, IngestRun, Service
     from app.module import module
+
+    await ensure_schema()  # a database from before facilities had addresses
 
     def as_dicts(objs) -> list[dict]:
         return [{c.key: getattr(o, c.key) for c in o.__table__.columns} for o in objs]
