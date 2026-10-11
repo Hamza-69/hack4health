@@ -8,3 +8,8 @@
 title = "Ministry Info"
 url = "http://localhost:8002"
 ui_url = "http://localhost:5175"
+
+[requests]
+title = "Requests"
+url = "http://localhost:8003"
+ui_url = "http://localhost:5176"

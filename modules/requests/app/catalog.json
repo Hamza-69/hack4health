@@ -1,0 +1,100 @@
+[
+  {
+    "key": "hospitalisation",
+    "title_en": "Hospitalisation at the ministry's expense",
+    "title_ar": "طلب إستشفاء على نفقة وزارة الصحة",
+    "summary": "Approval for the ministry to pay for an operation or hospital stay, for patients with no other health cover.",
+    "who_qualifies": "Patients with no other health cover: not NSSF, the civil servants' cooperative, the army, internal security or an insurance company. Since 2 July 2026 the ministry pays 100% for uninsured Lebanese in public hospitals and some private ones, for all emergencies and a certain number of hospitalisation cases (not all).",
+    "documents": [
+      {"key": "medical_report", "label_en": "Detailed medical report: admission date, hospital stamp, doctor's stamp, signature and Order number, with the words \"at the expense of the Ministry of Health\"", "label_ar": "تقرير طبي مفصل مع تاريخ الدخول وختم المستشفى وختم وتوقيع الطبيب ورقم انتسابه، مع عبارة \"على نفقة وزارة الصحة\"", "required": true},
+      {"key": "civil_registry_extract", "label_en": "Individual civil registry extract (ikhraj qaid fardi), with the patient's photo if over 5", "label_ar": "إخراج قيد فردي، وعليه صورة صاحب العلاقة إذا كان عمره أكثر من خمس سنوات", "required": true},
+      {"key": "nssf_statement", "label_en": "NSSF statement that the patient is not covered by NSSF, no older than two months", "label_ar": "إفادة من الضمان الاجتماعي بعدم استفادة المريض من التغطية الصحية، لا يتجاوز عمرها الشهرين", "required": true},
+      {"key": "kinship_proof", "label_en": "Proof of kinship, if a relative applies for the patient", "label_ar": "مستند يثبت صلة القرابة، إذا قدم الطلب أحد أفراد العائلة", "required": false}
+    ],
+    "fields": [
+      {"key": "patient_name", "label_en": "Patient's full name", "label_ar": "اسم المريض الكامل"},
+      {"key": "procedure", "label_en": "Operation or reason for admission", "label_ar": "العملية أو سبب الدخول"},
+      {"key": "hospital", "label_en": "Hospital", "label_ar": "المستشفى"},
+      {"key": "applicant", "label_en": "Who is applying (the patient, or a relative and how they are related)", "label_ar": "مقدم الطلب (المريض أو قريبه وصلة القرابة)"},
+      {"key": "no_other_cover", "label_en": "Patient confirms no other cover (the written pledge is signed at the desk)", "label_ar": "يؤكد المريض عدم استفادته من أي جهة ضامنة أخرى (يوقع التعهد الخطي عند الاستلام)"}
+    ],
+    "desk": "Card issuing centre, Hospitals Service, Directorate of Medical Care (مركز إعطاء البطاقات)",
+    "desk_contact": "Bir Hassan, Jnah, near Ogero · hospitals@moph.gov.lb · 01-830300 ext. 510",
+    "deadline_days": 1,
+    "after_approval": "The approval is valid 15 days; the ministry's controller doctor at the hospital renews it.",
+    "how_it_works_today": "The patient or a close relative brings the papers in person to the card centre in Bir Hassan, Monday to Saturday.",
+    "source_urls": ["https://www.moph.gov.lb/ar/AdministrativeServices/details/84"]
+  },
+  {
+    "key": "ivig",
+    "title_en": "IVIG medicine (immune deficiency, ITP, Kawasaki, Guillain-Barré)",
+    "title_ar": "طلب مساعدة أدوية IVIG",
+    "summary": "Request for the ministry to provide IVIG for primary immune deficiency, ITP, Kawasaki disease or Guillain-Barré.",
+    "who_qualifies": "Lebanese patients with no other payer, meeting the Drugs National Guidelines.",
+    "documents": [
+      {"key": "id_document", "label_en": "ID card or civil registry extract", "label_ar": "صورة الهوية أو إخراج القيد", "required": true},
+      {"key": "medical_report", "label_en": "Detailed medical report from the doctor", "label_ar": "تقرير طبي مفصل من الطبيب", "required": true},
+      {"key": "prescription", "label_en": "Prescription with the exact dose and duration", "label_ar": "الوصفة الطبية مع الجرعة والمدة بدقة", "required": true},
+      {"key": "lab_results", "label_en": "Tests for the condition (ITP: CBC; Kawasaki: CBC, ESR; immune deficiency: CBC, platelets, smear, immunoglobulins)", "label_ar": "الفحوصات حسب الحالة", "required": true},
+      {"key": "drug_center_card", "label_en": "Drugs Dispensing Center card, if the patient has one", "label_ar": "بطاقة مركز توزيع الأدوية إذا وجدت", "required": false}
+    ],
+    "fields": [
+      {"key": "patient_name", "label_en": "Patient's full name", "label_ar": "اسم المريض الكامل"},
+      {"key": "condition", "label_en": "Condition", "label_ar": "الحالة المرضية"},
+      {"key": "request_type", "label_en": "New request or renewal", "label_ar": "طلب جديد أو تجديد"},
+      {"key": "physician", "label_en": "Treating physician", "label_ar": "الطبيب المعالج"}
+    ],
+    "desk": "Procurement and Supply Department, Diwan Service (دائرة التجهيز والتموين)",
+    "desk_contact": "Bir Hassan, Jnah, near Ogero · drugs@moph.gov.lb · 01-830300 ext. 447",
+    "deadline_days": 14,
+    "after_approval": "",
+    "how_it_works_today": "Fill form AK010IVIG-4 and hand it in with the documents at the ministry, or apply online with a site account.",
+    "source_urls": ["https://www.moph.gov.lb/ar/AdministrativeServices/details/185"]
+  },
+  {
+    "key": "haemophilia_transplant",
+    "title_en": "Haemophilia, thalassaemia or transplant medicine",
+    "title_ar": "أدوية مرضى الهيموفيليا والتلاسيميا والزرع",
+    "summary": "Medicine for haemophilia or thalassaemia, or anti-rejection medicine (Advagraf, Prograf) after an organ transplant.",
+    "who_qualifies": "Haemophilia, thalassaemia and organ-transplant patients with a unified health number; Lebanese with no other payer.",
+    "documents": [
+      {"key": "id_document", "label_en": "ID card", "label_ar": "صورة عن الهوية", "required": true},
+      {"key": "medical_report", "label_en": "Detailed medical report naming the medicine, strength and daily dose", "label_ar": "تقرير طبي مفصل مع ذكر الدواء والعيار والجرعة اليومية", "required": true},
+      {"key": "unified_prescription", "label_en": "Unified prescription naming the medicine, strength and daily dose", "label_ar": "وصفة طبية موحدة مع ذكر الدواء والعيار والجرعة اليومية", "required": true}
+    ],
+    "fields": [
+      {"key": "patient_name", "label_en": "Patient's full name", "label_ar": "اسم المريض الكامل"},
+      {"key": "unified_health_number", "label_en": "Unified health number", "label_ar": "الرقم الصحي الموحد"},
+      {"key": "condition", "label_en": "Condition (haemophilia, thalassaemia, transplant)", "label_ar": "الحالة"},
+      {"key": "medicine", "label_en": "Medicine", "label_ar": "الدواء"},
+      {"key": "pharmacy", "label_en": "Pharmacy to deliver to", "label_ar": "الصيدلية المحددة للتسليم"}
+    ],
+    "desk": "Procurement and Supply Department, Diwan Service (دائرة التجهيز والتموين)",
+    "desk_contact": "drugs@moph.gov.lb · WhatsApp 81/348838",
+    "deadline_days": 7,
+    "after_approval": "The medicine is delivered to the chosen pharmacy in about 5 working days.",
+    "how_it_works_today": "The documents are sent by WhatsApp to 81/348838, or the specialist files them on the AMAN platform.",
+    "source_urls": ["https://www.moph.gov.lb/en/Pages/6/15089/meditrack-project-track-trace-medicines-through-the-2d-barcode"]
+  },
+  {
+    "key": "complaint",
+    "title_en": "Complaint about a hospital or health service",
+    "title_ar": "شكوى",
+    "summary": "A complaint to the ministry, for example a hospital asking for extra payment.",
+    "who_qualifies": "Anyone.",
+    "documents": [
+      {"key": "photo", "label_en": "A photo supporting the complaint (optional)", "label_ar": "صورة داعمة (اختياري)", "required": false}
+    ],
+    "fields": [
+      {"key": "facility", "label_en": "Hospital or facility concerned", "label_ar": "المستشفى أو المؤسسة المعنية"},
+      {"key": "incident_date", "label_en": "When it happened", "label_ar": "تاريخ الحادثة"},
+      {"key": "details", "label_en": "What happened", "label_ar": "تفاصيل الشكوى"}
+    ],
+    "desk": "Complaints office (مكتب الشكاوى)",
+    "desk_contact": "info@moph.gov.lb · hotline 1214",
+    "deadline_days": 7,
+    "after_approval": "",
+    "how_it_works_today": "Call 1214, or use the ministry's app, website or email.",
+    "source_urls": ["https://www.moph.gov.lb/ar/contact"]
+  }
+]
