@@ -1,12 +1,12 @@
 import { useApi } from "@h4h/module-ui";
 import { useCallback, useEffect, useState } from "react";
 
-type Tab = "overview" | "gaps" | "searches";
+type Tab = "overview" | "asking" | "gaps";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "overview", label: "Overview" },
+  { id: "asking", label: "What people ask" },
   { id: "gaps", label: "Unanswered" },
-  { id: "searches", label: "Searches" },
 ];
 
 export default function App() {
@@ -29,7 +29,12 @@ export default function App() {
       </nav>
       {tab === "overview" && <Overview />}
       {tab === "gaps" && <Gaps />}
-      {tab === "searches" && <Searches />}
+      {tab === "asking" && (
+        <div className="space-y-8">
+          <Insights />
+          <Searches />
+        </div>
+      )}
     </div>
   );
 }
@@ -125,7 +130,7 @@ function Overview() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+function Stat({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4">
       <div className="text-2xl font-semibold">{value}</div>
@@ -250,5 +255,75 @@ function Searches() {
         </div>
       )}
     </div>
+  );
+}
+
+type Asked = { query: string; topic: string; count: number; found: number };
+type InsightsData = {
+  days: number;
+  total: number;
+  answered_share: number | null;
+  open_unanswered: number;
+  by_topic: { topic: string; count: number }[];
+  top: Asked[];
+  not_found: Asked[];
+};
+
+function Insights() {
+  const { data, error } = useLoad<InsightsData>("/insights?days=7");
+  if (error) return <ErrorText error={error} />;
+  if (!data) return null;
+  if (data.total === 0) return <p className="text-sm text-gray-500">Nobody has asked anything in the last 7 days.</p>;
+  const max = Math.max(...data.by_topic.map((t) => t.count));
+  return (
+    <div className="space-y-6">
+      <p className="text-sm text-gray-500">
+        What the public asked Wasel in the last {data.days} days, from the anonymous search log. Questions the
+        ministry's data could not answer show confusion, missing information or rumours early.
+      </p>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Stat value={data.total} label="questions looked up" />
+        <Stat value={data.answered_share === null ? "—" : `${Math.round(data.answered_share * 100)}%`} label="answered from ministry data" />
+        <Stat value={data.open_unanswered} label="open unanswered questions" />
+      </div>
+      <section className="rounded-lg border border-gray-200 bg-white p-4">
+        <h3 className="mb-3 text-sm font-semibold">By topic</h3>
+        <ul className="space-y-2">
+          {data.by_topic.map((t) => (
+            <li key={t.topic} className="grid grid-cols-[minmax(0,14rem)_1fr_2.5rem] items-center gap-3 text-sm">
+              <span className="truncate text-gray-700">{t.topic}</span>
+              <span className="h-2 rounded-full bg-gray-100">
+                <span className="block h-2 rounded-full bg-gray-800" style={{ width: `${(t.count / max) * 100}%` }} />
+              </span>
+              <span className="text-right text-gray-500 tabular-nums">{t.count}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <AskedList title="Most asked" items={data.top} />
+        <AskedList title="Not answered by ministry data" items={data.not_found} empty="Every question found an answer." warn />
+      </div>
+    </div>
+  );
+}
+
+function AskedList({ title, items, empty, warn }: { title: string; items: Asked[]; empty?: string; warn?: boolean }) {
+  return (
+    <section className="rounded-lg border border-gray-200 bg-white p-4">
+      <h3 className={`mb-3 text-sm font-semibold ${warn ? "text-red-700" : ""}`}>{title}</h3>
+      {items.length === 0 && <p className="text-sm text-gray-500">{empty}</p>}
+      <ol className="space-y-2">
+        {items.map((a) => (
+          <li key={a.query} className="flex items-start justify-between gap-3 text-sm">
+            <div className="min-w-0">
+              <div dir="auto" className="truncate">{a.query}</div>
+              <div className="text-xs text-gray-400">{a.topic}</div>
+            </div>
+            <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 tabular-nums">×{a.count}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }
