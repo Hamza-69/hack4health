@@ -9,6 +9,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -18,7 +19,7 @@ from typing import Annotated, TypedDict
 
 from langchain.chat_models import init_chat_model
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AnyMessage, SystemMessage, ToolCall, ToolMessage
+from langchain_core.messages import AIMessage, AnyMessage, HumanMessage, SystemMessage, ToolCall, ToolMessage
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 from langgraph.runtime import Runtime
@@ -35,9 +36,22 @@ MAX_STEPS = 25  # model and tool steps in one turn
 RESOLUTION_NOTES = 5  # resolutions of archived tickets given as background
 
 PROMPT = """\
-You are the hack4health assistant. People write to you on WhatsApp, Telegram or the web. Reply in \
-the user's language, short and plain, the way a helpful person texts. Plain text only: no markdown, \
-and links as bare URLs.
+You are Wasel (واصل), a WhatsApp assistant for the services of Lebanon's Ministry of Public Health. \
+You answer questions from what the ministry publishes: its services and how to apply, what it covers \
+and for whom, medicine prices, hospitals and health centres, hotlines and announcements. If asked \
+who you are, say this in one line; never call yourself anything but Wasel.
+
+Language. Reply in the language, dialect and script of the user's last message, and never mix \
+scripts in one reply:
+- Arabizi (Arabic in Latin letters and numbers, e.g. "kifak", "3andi", "7ada") → reply fully in \
+Lebanese Arabizi, in the same style. Write official names in Arabizi or English too, never in Arabic \
+script. Example: "Eh, fik ta3mol talab esteshfa2 3a 7sab el wezara. Lezem: 1. Taqrir tebbe..."
+- Lebanese Arabic in Arabic script → Lebanese Arabic in Arabic script.
+- Modern Standard Arabic → Modern Standard Arabic. English → English. French → French.
+The ministry's content is in Arabic: translate or transliterate it into the user's script.
+
+Style: short and plain, the way a helpful person texts on WhatsApp. No markdown: no **, #, headings \
+or tables; a short numbered list for steps or documents is fine. Links as bare URLs.
 
 Each module below gives you tools and says how to use them. Only state what a tool result in this \
 chat says; never fill gaps from general knowledge. If nothing here fits the request, say what you \
@@ -143,7 +157,12 @@ async def call_model(state: State, runtime: Runtime[Context]) -> dict:
     ctx = runtime.context
     queued = await ctx.sync(state["messages"])
     model = get_model().bind_tools(ctx.tools)
-    reply = await model.ainvoke([SystemMessage(ctx.system), *state["messages"], *queued])
+    messages = [SystemMessage(ctx.system), *state["messages"], *queued]
+    if hint := _script_hint(messages):
+        messages.append(SystemMessage(hint))
+    reply = await model.ainvoke(messages)
+    if hint and not reply.tool_calls and _ARABIC.search(reply.text):
+        reply = await _rewrite_in_arabizi(reply)
     if reply.text:
         await ctx.send(reply.text)
     return {"messages": [*queued, reply]}
@@ -152,6 +171,38 @@ async def call_model(state: State, runtime: Runtime[Context]) -> dict:
 async def call_tools(state: State, runtime: Runtime[Context]) -> dict:
     calls = state["messages"][-1].tool_calls
     return {"messages": await asyncio.gather(*(_call_tool(runtime.context.user_id, c) for c in calls))}
+
+
+_ARABIC = re.compile(r"[\u0600-\u06ff]")
+_ARABIZI = re.compile(
+    r"[a-z][2356789][a-z]|\b[2357][a-z]|[a-z][2357]\b|"
+    r"\b(shou|shu|kif|kifak|kifik|baddi|badde|bade|bado|eza|iza|3am|ma3|3and|3ande|ya3ne|adde|"
+    r"hek|hayde|hayda|ana|enta|enti|lesh|leh|wen|mnih|tayeb|yalla|marhaba|habibi|ktir|kteer)\b"
+)
+
+
+def _script_hint(messages: list[AnyMessage]) -> str | None:
+    """A last-moment reminder of the user's script: tool results in Arabic pull the model away from Arabizi."""
+    last = next((m for m in reversed(messages) if isinstance(m, HumanMessage)), None)
+    text = last.text.lower() if last else ""
+    if not text or text.startswith("[supplier") or _ARABIC.search(text) or not _ARABIZI.search(text):
+        return None
+    return (
+        "The user writes in Arabizi (Lebanese Arabic in Latin letters). Write your whole reply in Arabizi "
+        "with Latin letters and numbers only: not one word in Arabic script, including document names, "
+        "offices and quotes from tool results; transliterate them. Links stay as they are."
+    )
+
+
+async def _rewrite_in_arabizi(reply: AIMessage) -> AIMessage:
+    """The model still slipped into Arabic script: have it rewrite the answer, keeping everything else."""
+    rewrite = await get_model().ainvoke([
+        SystemMessage("Rewrite the message fully in Lebanese Arabizi (Latin letters and numbers, e.g. 3, 7, 2). "
+                      "Transliterate every word in Arabic script. Keep the meaning, numbers, links and list layout "
+                      "exactly. Output only the rewritten message."),
+        HumanMessage(reply.text),
+    ])
+    return AIMessage(rewrite.text, id=reply.id)
 
 
 def _after_model(state: State) -> str:
