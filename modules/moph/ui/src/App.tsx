@@ -416,7 +416,7 @@ type WeeklyData = {
   days: string[];
   kinds: { kind: string; per_day: Count[]; total: Count }[];
   searches: { answered: Count; unanswered: Count; answered_share: number | null };
-  rumours: { key: string; count: Count; verdict: Verdict }[];
+  rumours: { key: string; claim: string; count: Count; verdict: Verdict }[];
 };
 
 const FEWER = "fewer than 5";
@@ -496,7 +496,7 @@ function Weekly() {
                 {data.rumours.map((r) => (
                   <tr key={r.key} className="border-b border-gray-100 last:border-0">
                     <td dir="auto" className="px-4 py-2">
-                      {r.key}
+                      {r.claim}
                     </td>
                     <CountCell n={r.count} />
                     <td className="px-4 py-2">

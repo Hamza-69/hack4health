@@ -269,8 +269,13 @@ async def call_model(state: State, runtime: Runtime[Context]) -> dict:
         messages.append(SystemMessage(_HINTS[script]))
     reply = await model.ainvoke(messages)
     if script and not reply.tool_calls and _wrong_script(script, reply.text):
-        log.warning("reply for user %s came out of the user's script (%s); rewriting", ctx.user_id, script)
-        reply = await _rewrite(reply, script, user)
+        # Held to Arabizi, the model now and then starts an Arabic word and stops there, mid-sentence:
+        # a rewrite would keep the cut. Ask again first, and rewrite only if that comes out wrong too.
+        log.warning("reply for user %s came out of the user's script (%s); asking again", ctx.user_id, script)
+        reply = await model.ainvoke(messages)
+        if not reply.tool_calls and _wrong_script(script, reply.text):
+            log.warning("reply for user %s still out of the user's script (%s); rewriting", ctx.user_id, script)
+            reply = await _rewrite(reply, script, user)
     if reply.text:
         await ctx.send(reply.text)
     return {"messages": [*queued, reply]}

@@ -302,3 +302,24 @@ async def test_replies_go_to_the_client_with_a_reply_token(monkeypatch):
     assert json.loads(request.content) == {"account_id": PHONE, "text": "hello"}
     token = request.headers["Authorization"].removeprefix("Bearer ")
     assert verify(token, tokens._public_key(), audience="client:wa", typ=TokenType.REPLY)["sub"] == "wa"
+
+
+async def test_a_reply_out_of_the_users_script_is_asked_again(client, session, started_runs, sent, monkeypatch):
+    model = FakeModel(
+        AIMessage("El talab bi7tej efede men el daman بت?"),  # stopped mid-word: a rewrite would keep the cut
+        AIMessage("El talab bi7tej efede men el daman enno ma byestafid men taghtiyto."),
+    )
+
+    async def arabizi(texts):
+        return "arabizi"
+
+    monkeypatch.setattr(agent, "get_model", lambda: model)
+    monkeypatch.setattr(agent, "_script", arabizi)
+    monkeypatch.setattr(tools, "list_modules", no_modules)
+
+    user_id = await post_user(client, "ma3o daman, NSSF")
+    [(_, since)] = started_runs
+    await runs.Run(user_id, since).go()
+
+    assert len(model.prompts) == 2
+    assert sent == ["El talab bi7tej efede men el daman enno ma byestafid men taghtiyto."]
