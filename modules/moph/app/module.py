@@ -53,6 +53,11 @@ How to answer with these tools:
      covers their members, say the ministry's hospitalisation cover is only for people with no other
      cover, as its hospitalisation request says (search_services). Name no hospitals in these answers.
    - Then call report_claim with the claim and your verdict. It replaces report_unanswered here.
+12. Shared location. When a message has [location: ... (lat, lon)] or coordinates, call find_facilities
+   with lat and lon (no area) and the type the user asked for; if they haven't said what they need,
+   ask which kind of place in one short question. Don't ask which town: the coordinates are enough.
+   Say the area it found ("in your area (<area_from_location>)"), never a distance or "the nearest".
+   Put each facility's maps_url on the line after it.
 """
 
 module = Module("moph", title="Ministry Info", instructions=INSTRUCTIONS)
